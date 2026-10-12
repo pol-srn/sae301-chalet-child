@@ -1,0 +1,27 @@
+/*
+Theme Name:   Le Chalet (enfant de Storefront)
+Theme URI:    https://github.com/
+Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
+Author:       Paul Siron
+Template:     storefront
+Version:      1.0.0
+License:      GNU General Public License v2 or later
+License URI:  https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain:  chalet-child
+*/
+
+/* Charte graphique du Chalet (relevée sur lechaletlimoges.com) */
+:root {
+  --chalet-or: #e5af4a;
+  --chalet-caramel: #b58c67;
+  --chalet-caramel-fonce: #8a6544;
+  --chalet-lin: #ded1c3;
+  --chalet-creme: #fbf7f2;
+  --chalet-noir: #1e1a17;
+  --chalet-blanc: #ffffff;
+}
+
+body {
+  background-color: var(--chalet-creme);
+  color: var(--chalet-noir);
+}
