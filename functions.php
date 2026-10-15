@@ -4,6 +4,7 @@
  *
  * IT-2 : apparence générale (US-2.1), page La Carte (US-2.3), fiche produit simple (US-2.4).
  * IT-3 : niveaux de stock (US-3.1), sélecteur d'options en boutons (US-3.2, US-3.3).
+ * IT-4 : champs personnalisés Origine et Allergènes (US-4.1), étiquette du plat avant le prix (US-4.3, US-4.4).
  *
  * @package chalet-child
  */
@@ -353,7 +354,96 @@ function chalet_script_options() {
 add_action( 'wp_enqueue_scripts', 'chalet_script_options' );
 
 /* --------------------------------------------------------------------------
- * 7. Pied de page.
+ * 7. IT-4 : champs personnalisés (Secure Custom Fields) et étiquette du plat.
+ * ------------------------------------------------------------------------ */
+
+// Groupe de champs « Étiquette du plat », affiché dans la fiche produit du back office.
+// Déclaré en PHP : il suit le thème dans Git et arrive en prod avec un simple git pull.
+function chalet_champs_produit() {
+	if ( ! function_exists( 'acf_add_local_field_group' ) ) {
+		return; // Secure Custom Fields désactivé : on ne fait rien.
+	}
+	$allergenes = array( 'Gluten', 'Crustacés', 'Œufs', 'Poissons', 'Arachides', 'Soja', 'Lait', 'Fruits à coque', 'Céleri', 'Moutarde', 'Sésame', 'Sulfites', 'Lupin', 'Mollusques' );
+	acf_add_local_field_group(
+		array(
+			'key'      => 'group_chalet_etiquette',
+			'title'    => 'Étiquette du plat',
+			'fields'   => array(
+				array(
+					'key'          => 'field_chalet_origine',
+					'label'        => 'Origine',
+					'name'         => 'origine',
+					'type'         => 'text',
+					'instructions' => 'Origine du produit principal, affichée dans le sceau (ex. : Bœuf limousin). Laisser vide pour ne pas afficher le sceau.',
+					'maxlength'    => 24,
+				),
+				array(
+					'key'           => 'field_chalet_allergenes',
+					'label'         => 'Allergènes',
+					'name'          => 'allergenes',
+					'type'          => 'checkbox',
+					'instructions'  => 'Les 14 allergènes à déclarer (règlement UE n° 1169/2011).',
+					'choices'       => array_combine( $allergenes, $allergenes ),
+					'layout'        => 'horizontal',
+					'return_format' => 'value',
+				),
+			),
+			'location' => array(
+				array(
+					array(
+						'param'    => 'post_type',
+						'operator' => '==',
+						'value'    => 'product',
+					),
+				),
+			),
+			'position' => 'normal',
+		)
+	);
+}
+add_action( 'acf/init', 'chalet_champs_produit' );
+
+// Étiquette du plat sur la fiche produit : après le titre (5), avant le prix (10).
+function chalet_etiquette_plat() {
+	if ( ! function_exists( 'get_field' ) ) {
+		return;
+	}
+	$origine    = get_field( 'origine' );
+	$allergenes = get_field( 'allergenes' );
+	if ( ! $origine && ! $allergenes ) {
+		return; // Rien de renseigné : pas d'étiquette.
+	}
+	?>
+	<section class="etiquette" aria-labelledby="etiquette-titre">
+		<div class="etiquette__fond">
+			<?php if ( $origine ) : ?>
+				<p class="etiquette__sceau">
+					<span class="etiquette__sceau-libelle">Origine</span>
+					<span class="etiquette__sceau-filet" aria-hidden="true"></span>
+					<span class="etiquette__origine"><?php echo esc_html( $origine ); ?></span>
+				</p>
+			<?php endif; ?>
+			<div class="etiquette__contenu">
+				<h2 class="etiquette__titre" id="etiquette-titre">Dans l’assiette</h2>
+				<?php if ( $allergenes ) : ?>
+					<p class="etiquette__libelle">Allergènes</p>
+					<ul class="etiquette__allergenes">
+						<?php foreach ( (array) $allergenes as $allergene ) : ?>
+							<li><?php echo esc_html( $allergene ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+				<?php else : ?>
+					<p class="etiquette__libelle">Aucun allergène à déclarer</p>
+				<?php endif; ?>
+			</div>
+		</div>
+	</section>
+	<?php
+}
+add_action( 'woocommerce_single_product_summary', 'chalet_etiquette_plat', 6 );
+
+/* --------------------------------------------------------------------------
+ * 8. Pied de page.
  * ------------------------------------------------------------------------ */
 function chalet_pied() {
 	$img = get_stylesheet_directory_uri() . '/assets/img/';
