@@ -1,27 +1,685 @@
 /*
 Theme Name:   Le Chalet (enfant de Storefront)
-Theme URI:    https://github.com/
+Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.0.0
+Version:      1.1.2
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
 */
 
-/* Charte graphique du Chalet (relevée sur lechaletlimoges.com) */
+/*
+  Reprise du Design System (tokens + composants BEM) appliquée aux classes de Storefront / WooCommerce.
+  Pas de @layer ici : un style rangé dans une couche perd toujours contre un style hors couche,
+  donc le CSS de Storefront (hors couche) l'emporterait sur le nôtre.
+  Mobile d'abord, puis @media (min-width: 64rem) pour le desktop.
+*/
+
+/* ==========================================================================
+   1. Variables (primitive tokens + semantic tokens)
+   ========================================================================== */
 :root {
-  --chalet-or: #e5af4a;
-  --chalet-caramel: #b58c67;
-  --chalet-caramel-fonce: #8a6544;
-  --chalet-lin: #ded1c3;
-  --chalet-creme: #fbf7f2;
-  --chalet-noir: #1e1a17;
-  --chalet-blanc: #ffffff;
+  --color-or: #e5af4a;
+  --color-caramel: #b58c67;
+  --color-caramel-fonce: #8a6544;
+  --color-lin: #ded1c3;
+  --color-creme: #fbf7f2;
+  --color-noir: #1e1a17;
+  --color-blanc: #ffffff;
+  --color-nuit: #121f29;
+
+  --color-bg-main: var(--color-blanc);
+  --color-bg-surface: var(--color-creme);
+  --color-bg-menu: var(--color-caramel);
+  --color-bg-footer: var(--color-nuit);
+  --color-text-main: var(--color-noir);
+  --color-text-inverse: var(--color-blanc);
+  --color-accent: var(--color-caramel-fonce);
+  --color-highlight: var(--color-or);
+  --color-border: var(--color-lin);
+
+  --font-title: "Melodrama", Georgia, serif;
+  --font-main: "DM Sans", Arial, sans-serif;
+  --radius: 0.5rem;
 }
 
+/* ==========================================================================
+   2. Base : on remplace les polices et couleurs de Storefront
+   ========================================================================== */
 body {
-  background-color: var(--chalet-creme);
-  color: var(--chalet-noir);
+  overflow-x: hidden;
+  background-color: var(--color-bg-main);
+  color: var(--color-text-main);
+  font-family: var(--font-main);
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-main);
+}
+
+h1,
+h2,
+h3,
+.product_title {
+  color: var(--color-text-main);
+  font-family: var(--font-title);
+  font-weight: 500;
+}
+
+a {
+  color: var(--color-accent);
+}
+
+.site-content .col-full {
+  max-width: 75rem;
+}
+
+.site-content .content-area {
+  float: none;
+  width: 100%;
+  margin: 0;
+}
+
+/* ==========================================================================
+   3. En-tête (barre + logo + titre sur la photo)
+   ========================================================================== */
+.site-header {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: linear-gradient(rgb(0 0 0 / 0.5), rgb(0 0 0 / 0.5)), url("assets/img/hero-la-carte.webp") center 30% / cover no-repeat;
+}
+
+.entete {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 20rem;
+  padding-bottom: 3rem;
+  color: var(--color-creme);
+
+  .entete__barre {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0 1rem;
+    border-bottom: 1px solid rgb(251 247 242 / 0.2);
+  }
+
+  .entete__horaires {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+    margin: 0;
+  }
+
+  .entete__badge {
+    display: inline-block;
+    width: 7.8125rem;
+    padding: 0.25rem 0;
+    background: url("assets/img/badge-horaires-forme.svg") center / contain no-repeat;
+    color: var(--color-blanc);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .entete__actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    width: 100%;
+    margin: 0;
+    list-style: none;
+  }
+
+  .entete__actions > li {
+    display: flex;
+    align-items: center;
+  }
+
+  /* Mobile : la réservation passe dans le menu, il reste panier (gauche) et menu (droite). */
+  .entete__actions > li:first-child {
+    display: none;
+  }
+
+  .entete__lien {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 4.4375rem;
+    color: var(--color-creme);
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .entete__lien::before {
+    content: "";
+    display: block;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: center / contain no-repeat;
+  }
+
+  .entete__lien--reservation {
+    font-size: 0;
+  }
+
+  .entete__lien--reservation::before {
+    width: 2.375rem;
+    background-image: url("assets/img/reservation-cloche.svg");
+  }
+
+  .entete__lien--panier::before {
+    background-image: url("assets/img/panier-sac.svg");
+  }
+
+  .entete__lien--menu {
+    list-style: none;
+  }
+
+  .entete__lien--menu::-webkit-details-marker {
+    display: none;
+  }
+
+  .entete__lien--menu::before {
+    background-image: url("assets/img/menu-burger.svg");
+  }
+
+  .entete__compteur {
+    font-size: 0.875rem;
+  }
+
+  .entete__menu {
+    position: relative;
+  }
+
+  .entete__sous-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 10;
+    min-width: 13rem;
+    margin: 0;
+    padding: 1rem 1.5rem;
+    background-color: var(--color-bg-footer);
+    list-style: none;
+  }
+
+  .entete__sous-menu a {
+    display: block;
+    padding: 0.5rem 0;
+    color: var(--color-creme);
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .entete__logo {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+    margin-top: 2rem;
+  }
+
+  .entete__logo::before,
+  .entete__logo::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid rgb(251 247 242 / 0.2);
+  }
+
+  .entete__logo img {
+    width: 12rem;
+    height: auto;
+  }
+
+  .entete__titre {
+    margin: auto 0 0;
+    padding-top: 3rem;
+    color: var(--color-creme);
+    font-family: var(--font-title);
+    font-size: 2.5rem;
+    font-weight: 500;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  @media (min-width: 64rem) {
+    min-height: 30.25rem;
+
+    .entete__barre {
+      padding: 0 1.875rem;
+    }
+
+    .entete__horaires {
+      display: flex;
+    }
+
+    .entete__actions {
+      width: auto;
+      margin-left: auto;
+    }
+
+    .entete__actions > li,
+    .entete__actions > li:first-child {
+      display: flex;
+      padding: 0 1rem;
+      border-left: 1px solid rgb(251 247 242 / 0.2);
+    }
+
+    .entete__actions > li:first-child {
+      border-left: none;
+    }
+
+    .entete__lien--reservation {
+      font-size: 1rem;
+    }
+
+    .entete__logo {
+      margin-top: 3rem;
+    }
+
+    .entete__logo img {
+      width: 17.875rem;
+    }
+
+    .entete__titre {
+      font-size: 4rem;
+    }
+  }
+}
+
+/* ==========================================================================
+   4. Page La Carte : intro + sections par catégorie
+   ========================================================================== */
+.home .site-main,
+.post-type-archive-product .site-main {
+  margin-bottom: 0;
+}
+
+.intro {
+  margin-inline: calc(50% - 50vw);
+  padding: 2rem 1rem;
+  background-color: var(--color-bg-main);
+  text-align: center;
+
+  .intro__titre {
+    margin: 0;
+    color: var(--color-accent);
+    font-size: 2.5rem;
+  }
+
+  .intro__texte {
+    margin: 0.25rem 0 1rem;
+  }
+
+  .intro__liste {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 2rem;
+    margin: 0;
+    list-style: none;
+  }
+
+  .intro__lien {
+    color: var(--color-accent);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .intro__lien:hover,
+  .intro__lien:focus {
+    text-decoration: underline;
+    text-decoration-color: var(--color-border);
+    text-underline-offset: 0.4em;
+  }
+
+  @media (min-width: 64rem) {
+    padding: 4rem 1rem;
+
+    .intro__titre {
+      font-size: 4rem;
+    }
+
+    .intro__texte {
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+  }
+}
+
+.categorie {
+  margin-inline: calc(50% - 50vw);
+  padding: 2rem 1rem;
+  background-color: var(--color-bg-menu);
+  scroll-margin-top: 1rem;
+
+  .categorie__titre {
+    margin: 0 0 3rem;
+    color: var(--color-text-inverse);
+    font-size: 2.5rem;
+    text-align: center;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .woocommerce {
+    margin: 0;
+  }
+
+  @media (min-width: 64rem) {
+    .categorie__titre {
+      font-size: 3rem;
+    }
+  }
+}
+
+/* ==========================================================================
+   5. Grille et carte produit (ul.products de WooCommerce)
+   ========================================================================== */
+/* #primary : passe devant les règles de grille / largeur de Storefront et WooCommerce. */
+#primary ul.products {
+  display: grid;
+  grid-template-columns: minmax(0, 19.1875rem);
+  justify-content: center;
+  gap: 2rem;
+  margin: 0;
+}
+
+#primary ul.products::before,
+#primary ul.products::after {
+  display: none;
+}
+
+/* #primary (id de la zone de contenu de Storefront) : un id passe devant toutes les règles
+   de Storefront qui fixent la largeur des cartes en % (même chargées après ce fichier). */
+#primary ul.products li.product {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  float: none;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  clear: none;
+  padding: 0 0 1rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-main);
+  text-align: center;
+}
+
+ul.products li.product .woocommerce-LoopProduct-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  color: var(--color-text-main);
+  text-decoration: none;
+}
+
+ul.products li.product img {
+  width: 100%;
+  height: 13.875rem;
+  margin: 0 0 0.5rem;
+  object-fit: cover;
+}
+
+ul.products li.product .woocommerce-loop-product__title {
+  margin: 0;
+  padding: 0 1rem;
+  font-family: var(--font-title);
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.carte-produit__description {
+  margin: 0;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  opacity: 0.7;
+}
+
+ul.products li.product .price {
+  margin: 0 0 0.5rem;
+  color: var(--color-accent);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+ul.products li.product .added_to_cart {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+@media (min-width: 64rem) {
+  #primary ul.products {
+    grid-template-columns: repeat(3, 19.1875rem);
+    gap: 4rem;
+  }
+}
+
+/* ==========================================================================
+   6. Bouton du Chalet (double cadre) appliqué aux boutons WooCommerce
+   ========================================================================== */
+.site-main ul.products li.product .button,
+.site-main .single_add_to_cart_button.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12.4375rem;
+  height: 3.75rem;
+  padding: 0 0.625rem;
+  border: none;
+  background: url("assets/img/bouton-principal.svg") center no-repeat;
+  color: var(--color-text-inverse);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.site-main ul.products li.product .button:hover,
+.site-main .single_add_to_cart_button.button:hover {
+  background: url("assets/img/bouton-principal-survol.svg") center no-repeat;
+  color: var(--color-text-inverse);
+}
+
+.site-main ul.products li.product .button:focus-visible,
+.site-main .single_add_to_cart_button.button:focus-visible {
+  outline: 2px solid var(--color-text-main);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   7. Fiche produit simple
+   ========================================================================== */
+.woocommerce-breadcrumb {
+  margin: 0;
+  padding: 1.5rem 0;
+  border: none;
+  color: var(--color-accent);
+  font-size: 0.875rem;
+}
+
+.woocommerce-breadcrumb a::before {
+  display: none;
+}
+
+.single-product div.product .product_title {
+  margin-bottom: 1rem;
+  font-size: 2rem;
+}
+
+.single-product div.product p.price {
+  color: var(--color-accent);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.single-product div.product form.cart {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.single-product div.product form.cart .quantity {
+  float: none;
+  margin: 0;
+}
+
+.single-product div.product form.cart .quantity .qty {
+  width: 4rem;
+  height: 2.75rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius);
+  background-color: var(--color-bg-main);
+  box-shadow: none;
+  color: var(--color-text-main);
+}
+
+.single-product div.product .product_meta {
+  border-top: 1px solid var(--color-border);
+  font-size: 0.875rem;
+}
+
+.single-product div.product .woocommerce-tabs ul.tabs {
+  float: none;
+  width: auto;
+  margin: 0 0 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.single-product div.product .woocommerce-tabs ul.tabs li {
+  border: none;
+}
+
+.single-product div.product .woocommerce-tabs ul.tabs li a {
+  padding: 0 0 0.25rem;
+  color: var(--color-text-main);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.single-product div.product .woocommerce-tabs ul.tabs li.active a {
+  border-bottom: 2px solid var(--color-accent);
+}
+
+.single-product div.product .woocommerce-tabs ul.tabs li.active::after {
+  display: none;
+}
+
+.single-product div.product .woocommerce-tabs .panel {
+  float: none;
+  width: auto;
+  max-width: 47.5rem;
+}
+
+@media (min-width: 64rem) {
+  .single-product div.product .product_title {
+    font-size: 3rem;
+  }
+}
+
+/* ==========================================================================
+   8. Pied de page
+   ========================================================================== */
+.site-footer {
+  padding: 0;
+  background-color: var(--color-bg-footer);
+  color: var(--color-text-inverse);
+}
+
+.pied {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem 0 3rem;
+  text-align: center;
+
+  .pied__logo {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+  }
+
+  .pied__logo::before,
+  .pied__logo::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid rgb(255 255 255 / 0.1);
+  }
+
+  .pied__logo img {
+    width: 7.4375rem;
+    height: auto;
+  }
+
+  .pied__liens {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 1.75rem;
+    margin: 0;
+    list-style: none;
+  }
+
+  .pied__lien {
+    font-size: 0.875rem;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .pied__infos {
+    margin: 0;
+    font-size: 0.875rem;
+    letter-spacing: 0.02em;
+  }
+
+  .pied__reseaux {
+    display: flex;
+    align-items: center;
+    gap: 3.5rem;
+    margin: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 64rem) {
+    .pied__lien,
+    .pied__infos {
+      font-size: 1rem;
+    }
+  }
+}
+
+/* Storefront colore les liens du footer avec « .site-footer a:not(.button):not(.components-button) »,
+   dans un style chargé après le nôtre : #colophon (id du footer de Storefront) passe devant. */
+#colophon .pied a.pied__lien,
+#colophon .pied .pied__infos a,
+#colophon .pied a.pied__reseau {
+  color: var(--color-text-inverse);
+}
+
+#colophon .pied li:first-child a.pied__lien {
+  color: var(--color-lin);
 }
