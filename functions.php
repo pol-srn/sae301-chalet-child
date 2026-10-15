@@ -3,6 +3,7 @@
  * Thème enfant Le Chalet (Storefront) – SAé 3.01.
  *
  * IT-2 : apparence générale (US-2.1), page La Carte (US-2.3), fiche produit simple (US-2.4).
+ * IT-3 : niveaux de stock (US-3.1), sélecteur d'options en boutons (US-3.2, US-3.3).
  *
  * @package chalet-child
  */
@@ -66,6 +67,9 @@ function chalet_reorganiser_storefront() {
 
 	// Carte produit : description courte sous le nom.
 	add_action( 'woocommerce_after_shop_loop_item_title', 'chalet_description_carte', 5 );
+
+	// Carte produit : badge « Épuisé » / « Plus que 3 » sur la photo (IT-3).
+	add_action( 'woocommerce_before_shop_loop_item_title', 'chalet_badge_carte', 5 );
 }
 add_action( 'init', 'chalet_reorganiser_storefront' );
 
@@ -245,7 +249,111 @@ add_filter( 'woocommerce_product_tabs', 'chalet_onglets_produit', 98 );
 add_filter( 'woocommerce_product_description_heading', '__return_empty_string' );
 
 /* --------------------------------------------------------------------------
- * 6. Pied de page.
+ * 6. IT-3 : stock et produits variables.
+ * ------------------------------------------------------------------------ */
+
+// Texte du stock (fiche produit + sélection d'une option) : Disponible, Plus que 3, Épuisé.
+function chalet_disponibilite( $dispo, $produit ) {
+	if ( ! $produit->is_in_stock() ) {
+		return array( 'availability' => 'Épuisé', 'class' => 'out-of-stock' );
+	}
+	if ( $produit->managing_stock() ) {
+		$stock = (int) $produit->get_stock_quantity();
+		if ( $stock <= wc_get_low_stock_amount( $produit ) ) {
+			return array( 'availability' => 'Plus que ' . $stock, 'class' => 'in-stock stock--faible' );
+		}
+		return array( 'availability' => 'Disponible', 'class' => 'in-stock' );
+	}
+	return $dispo;
+}
+add_filter( 'woocommerce_get_availability', 'chalet_disponibilite', 10, 2 );
+
+// Badge sur la photo de la carte produit (La Carte).
+function chalet_badge_carte() {
+	global $product;
+	if ( ! $product ) {
+		return;
+	}
+	$dispo = $product->get_availability();
+	if ( ! $product->is_in_stock() ) {
+		echo '<span class="badge badge--erreur carte-produit__badge">Épuisé</span>';
+	} elseif ( str_contains( $dispo['class'], 'stock--faible' ) ) {
+		echo '<span class="badge badge--alerte carte-produit__badge">' . esc_html( $dispo['availability'] ) . '</span>';
+	}
+}
+
+// Bouton de la carte : « Choisir les options » (produit variable), « Indisponible » (épuisé, non cliquable).
+function chalet_texte_bouton_carte( $texte, $produit ) {
+	return $produit->is_type( 'variable' ) && $produit->is_in_stock() ? 'Choisir les options' : $texte;
+}
+add_filter( 'woocommerce_product_add_to_cart_text', 'chalet_texte_bouton_carte', 10, 2 );
+
+function chalet_bouton_carte( $lien, $produit ) {
+	if ( ! $produit->is_in_stock() ) {
+		return '<span class="button button--indisponible">Indisponible</span>';
+	}
+	return $lien;
+}
+add_filter( 'woocommerce_loop_add_to_cart_link', 'chalet_bouton_carte', 10, 2 );
+
+// Fiche produit variable : les listes déroulantes deviennent des boutons radio (maquette v3.0).
+// La liste déroulante reste dans la page (masquée) : WooCommerce s'en sert pour trouver la variation.
+function chalet_options_en_boutons( $html, $args ) {
+	$attribut = $args['attribute'];
+	$produit  = $args['product'];
+	$options  = $args['options'];
+	if ( empty( $options ) && $produit && $attribut ) {
+		$attributs = $produit->get_variation_attributes();
+		$options   = $attributs[ $attribut ] ?? array();
+	}
+	if ( empty( $options ) ) {
+		return $html;
+	}
+
+	$nom    = 'choix-' . sanitize_title( $attribut );
+	$sortie = '<fieldset class="choix"><legend class="choix__titre">' . esc_html( wc_attribute_label( $attribut, $produit ) ) . '</legend><div class="choix__liste">';
+	foreach ( $options as $option ) {
+		$valeur = $option;
+		$texte  = $option;
+		if ( taxonomy_exists( $attribut ) ) {
+			$terme = get_term_by( 'slug', $option, $attribut );
+			$texte = $terme ? $terme->name : $option;
+		}
+		$coche   = ( $args['selected'] === $valeur || $args['selected'] === sanitize_title( $valeur ) ) ? ' checked' : '';
+		$sortie .= '<label class="choix__option"><input class="choix__radio" type="radio" name="' . esc_attr( $nom ) . '" value="' . esc_attr( $valeur ) . '"' . $coche . '> ' . esc_html( $texte ) . '</label>';
+	}
+	$sortie .= '</div></fieldset>';
+
+	return $html . $sortie;
+}
+add_filter( 'woocommerce_dropdown_variation_attribute_options_html', 'chalet_options_en_boutons', 10, 2 );
+add_filter( 'woocommerce_reset_variations_link', '__return_empty_string' );
+
+// Sélecteur de quantité de la maquette : boutons − et + autour du champ de WooCommerce.
+function chalet_bouton_moins() {
+	if ( is_product() ) {
+		echo '<button type="button" class="quantite__bouton" data-pas="-1" aria-label="Retirer un">−</button>';
+	}
+}
+add_action( 'woocommerce_before_quantity_input_field', 'chalet_bouton_moins' );
+
+function chalet_bouton_plus() {
+	if ( is_product() ) {
+		echo '<button type="button" class="quantite__bouton" data-pas="1" aria-label="Ajouter un">+</button>';
+	}
+}
+add_action( 'woocommerce_after_quantity_input_field', 'chalet_bouton_plus' );
+
+// Petit script qui recopie le bouton coché dans la liste déroulante masquée (et gère − / +).
+function chalet_script_options() {
+	if ( is_product() ) {
+		wp_enqueue_script( 'chalet-options-produit', get_stylesheet_directory_uri() . '/assets/js/options-produit.js', array(), '1.2.2', array( 'strategy' => 'defer' ) );
+	}
+}
+add_action( 'wp_enqueue_scripts', 'chalet_script_options' );
+
+/* --------------------------------------------------------------------------
+ * 7. Pied de page.
  * ------------------------------------------------------------------------ */
 function chalet_pied() {
 	$img = get_stylesheet_directory_uri() . '/assets/img/';

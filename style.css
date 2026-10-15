@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.1.2
+Version:      1.2.2
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -29,6 +29,9 @@ Text Domain:  chalet-child
   --color-noir: #1e1a17;
   --color-blanc: #ffffff;
   --color-nuit: #121f29;
+  --color-vert: #2e7d4f;
+  --color-rouge: #b3261e;
+  --color-orange: #a0561a;
 
   --color-bg-main: var(--color-blanc);
   --color-bg-surface: var(--color-creme);
@@ -39,6 +42,9 @@ Text Domain:  chalet-child
   --color-accent: var(--color-caramel-fonce);
   --color-highlight: var(--color-or);
   --color-border: var(--color-lin);
+  --color-succes: var(--color-vert);
+  --color-erreur: var(--color-rouge);
+  --color-alerte: var(--color-orange);
 
   --font-title: "Melodrama", Georgia, serif;
   --font-main: "DM Sans", Arial, sans-serif;
@@ -144,11 +150,6 @@ a {
   .entete__actions > li {
     display: flex;
     align-items: center;
-  }
-
-  /* Mobile : la réservation passe dans le menu, il reste panier (gauche) et menu (droite). */
-  .entete__actions > li:first-child {
-    display: none;
   }
 
   .entete__lien {
@@ -545,14 +546,46 @@ ul.products li.product .added_to_cart {
   margin: 0;
 }
 
+/* Sélecteur de quantité (maquette) : [ − ]  1  [ + ] */
+.single-product div.product form.cart .quantity {
+  display: flex;
+  align-items: center;
+}
+
 .single-product div.product form.cart .quantity .qty {
-  width: 4rem;
+  width: 3.5rem;
   height: 2.75rem;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  color: var(--color-text-main);
+  text-align: center;
+  appearance: textfield;
+}
+
+.quantite__bouton {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
   border: 1px solid var(--color-accent);
   border-radius: var(--radius);
   background-color: var(--color-bg-main);
-  box-shadow: none;
   color: var(--color-text-main);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.quantite__bouton:hover,
+.quantite__bouton:focus {
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-main);
+}
+
+.quantite__bouton:focus-visible {
+  outline: 2px solid var(--color-text-main);
+  outline-offset: 2px;
 }
 
 .single-product div.product .product_meta {
@@ -600,7 +633,178 @@ ul.products li.product .added_to_cart {
 }
 
 /* ==========================================================================
-   8. Pied de page
+   8. IT-3 : badges de stock, carte épuisée, sélecteur d'options
+   ========================================================================== */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background-color: var(--color-succes);
+  color: var(--color-text-inverse);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  &.badge--erreur {
+    background-color: var(--color-erreur);
+  }
+
+  &.badge--alerte {
+    background-color: var(--color-alerte);
+  }
+}
+
+#primary ul.products li.product {
+  position: relative;
+}
+
+.carte-produit__badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 1;
+}
+
+#primary ul.products li.product.outofstock img {
+  opacity: 0.5;
+}
+
+.site-main ul.products li.product .button--indisponible {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Stock affiché sur la fiche (produit simple ou option choisie) : même rendu que .badge. */
+.single-product div.product p.stock {
+  display: inline-block;
+  margin: 0;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background-color: var(--color-succes);
+  color: var(--color-text-inverse);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.single-product div.product p.stock::before {
+  display: none;
+}
+
+.single-product div.product p.stock.stock--faible {
+  background-color: var(--color-alerte);
+}
+
+.single-product div.product p.stock.out-of-stock {
+  background-color: var(--color-erreur);
+}
+
+/* Tableau des options de WooCommerce remis en simple pile de blocs. */
+.single-product div.product table.variations {
+  display: block;
+  margin: 0;
+  border: none;
+  background: none;
+
+  tbody,
+  tr,
+  td {
+    display: block;
+    padding: 0;
+    background: none;
+  }
+
+  th.label,
+  select {
+    display: none;
+  }
+
+  tr {
+    margin-bottom: 1.25rem;
+  }
+}
+
+/* Storefront donne aux fieldset un fond gris et un padding, et décale la legend vers la gauche : on annule. */
+.choix {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+
+  .choix__titre {
+    margin: 0 0 0.5rem;
+    padding: 0;
+    font-size: 0.875rem;
+    font-weight: 400;
+  }
+
+  .choix__liste {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .choix__option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background-color: var(--color-bg-main);
+    cursor: pointer;
+  }
+
+  .choix__option:has(:checked) {
+    border: 2px solid var(--color-accent);
+    background-color: var(--color-bg-surface);
+  }
+
+  .choix__option:has(:focus-visible) {
+    outline: 2px solid var(--color-text-main);
+    outline-offset: 2px;
+  }
+
+  .choix__radio {
+    margin: 0;
+    accent-color: var(--color-accent);
+  }
+}
+
+/* Formulaire d'un produit variable : options, puis prix + stock, puis quantité et bouton côte à côte. */
+.single-product div.product form.variations_form {
+  display: block;
+}
+
+.single-product div.product .woocommerce-variation-add-to-cart {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Prix et stock de l'option choisie, côte à côte. */
+.single-product div.product .single_variation {
+  margin-bottom: 1.25rem;
+}
+
+.single-product div.product .woocommerce-variation-price,
+.single-product div.product .woocommerce-variation-availability {
+  display: inline-block;
+  margin-right: 1rem;
+  vertical-align: middle;
+}
+
+.single-product div.product .woocommerce-variation-price .price {
+  color: var(--color-accent);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   9. Pied de page
    ========================================================================== */
 .site-footer {
   padding: 0;
