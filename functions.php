@@ -4,7 +4,8 @@
  *
  * IT-2 : apparence générale (US-2.1), page La Carte (US-2.3), fiche produit simple (US-2.4).
  * IT-3 : niveaux de stock (US-3.1), sélecteur d'options en boutons (US-3.2, US-3.3).
- * IT-4 : champs personnalisés Origine et Allergènes (US-4.1), étiquette du plat avant le prix (US-4.3, US-4.4).
+ * IT-4 : champs personnalisés Origine et Allergènes créés avec SCF (US-4.1), étiquette du plat avant le prix (US-4.3, US-4.4).
+ * IT-5 : page Panier « Vos plats » + « L'addition » (US-5.3), choix du mode de retrait (US-5.2, US-5.4).
  *
  * @package chalet-child
  */
@@ -332,14 +333,14 @@ add_filter( 'woocommerce_reset_variations_link', '__return_empty_string' );
 
 // Sélecteur de quantité de la maquette : boutons − et + autour du champ de WooCommerce.
 function chalet_bouton_moins() {
-	if ( is_product() ) {
+	if ( is_product() || is_cart() ) {
 		echo '<button type="button" class="quantite__bouton" data-pas="-1" aria-label="Retirer un">−</button>';
 	}
 }
 add_action( 'woocommerce_before_quantity_input_field', 'chalet_bouton_moins' );
 
 function chalet_bouton_plus() {
-	if ( is_product() ) {
+	if ( is_product() || is_cart() ) {
 		echo '<button type="button" class="quantite__bouton" data-pas="1" aria-label="Ajouter un">+</button>';
 	}
 }
@@ -347,8 +348,8 @@ add_action( 'woocommerce_after_quantity_input_field', 'chalet_bouton_plus' );
 
 // Petit script qui recopie le bouton coché dans la liste déroulante masquée (et gère − / +).
 function chalet_script_options() {
-	if ( is_product() ) {
-		wp_enqueue_script( 'chalet-options-produit', get_stylesheet_directory_uri() . '/assets/js/options-produit.js', array(), '1.2.2', array( 'strategy' => 'defer' ) );
+	if ( is_product() || is_cart() ) {
+		wp_enqueue_script( 'chalet-options-produit', get_stylesheet_directory_uri() . '/assets/js/options-produit.js', array(), '1.4.0', array( 'strategy' => 'defer' ) );
 	}
 }
 add_action( 'wp_enqueue_scripts', 'chalet_script_options' );
@@ -357,51 +358,7 @@ add_action( 'wp_enqueue_scripts', 'chalet_script_options' );
  * 7. IT-4 : champs personnalisés (Secure Custom Fields) et étiquette du plat.
  * ------------------------------------------------------------------------ */
 
-// Groupe de champs « Étiquette du plat », affiché dans la fiche produit du back office.
-// Déclaré en PHP : il suit le thème dans Git et arrive en prod avec un simple git pull.
-function chalet_champs_produit() {
-	if ( ! function_exists( 'acf_add_local_field_group' ) ) {
-		return; // Secure Custom Fields désactivé : on ne fait rien.
-	}
-	$allergenes = array( 'Gluten', 'Crustacés', 'Œufs', 'Poissons', 'Arachides', 'Soja', 'Lait', 'Fruits à coque', 'Céleri', 'Moutarde', 'Sésame', 'Sulfites', 'Lupin', 'Mollusques' );
-	acf_add_local_field_group(
-		array(
-			'key'      => 'group_chalet_etiquette',
-			'title'    => 'Étiquette du plat',
-			'fields'   => array(
-				array(
-					'key'          => 'field_chalet_origine',
-					'label'        => 'Origine',
-					'name'         => 'origine',
-					'type'         => 'text',
-					'instructions' => 'Origine du produit principal, affichée dans le sceau (ex. : Bœuf limousin). Laisser vide pour ne pas afficher le sceau.',
-					'maxlength'    => 24,
-				),
-				array(
-					'key'           => 'field_chalet_allergenes',
-					'label'         => 'Allergènes',
-					'name'          => 'allergenes',
-					'type'          => 'checkbox',
-					'instructions'  => 'Les 14 allergènes à déclarer (règlement UE n° 1169/2011).',
-					'choices'       => array_combine( $allergenes, $allergenes ),
-					'layout'        => 'horizontal',
-					'return_format' => 'value',
-				),
-			),
-			'location' => array(
-				array(
-					array(
-						'param'    => 'post_type',
-						'operator' => '==',
-						'value'    => 'product',
-					),
-				),
-			),
-			'position' => 'normal',
-		)
-	);
-}
-add_action( 'acf/init', 'chalet_champs_produit' );
+// Le groupe de champs « Étiquette du plat » (Origine, Allergènes) est créé dans l'interface de Secure Custom Fields.
 
 // Étiquette du plat sur la fiche produit : après le titre (5), avant le prix (10).
 function chalet_etiquette_plat() {
@@ -443,7 +400,48 @@ function chalet_etiquette_plat() {
 add_action( 'woocommerce_single_product_summary', 'chalet_etiquette_plat', 6 );
 
 /* --------------------------------------------------------------------------
- * 8. Pied de page.
+ * 8. IT-5 : panier.
+ * ------------------------------------------------------------------------ */
+function chalet_reglages_panier() {
+	remove_action( 'storefront_page', 'storefront_page_header', 10 );
+	remove_action( 'woocommerce_cart_collaterals', 'woocommerce_cross_sell_display' );
+}
+add_action( 'init', 'chalet_reglages_panier' );
+
+function chalet_options_plat_panier( $cart_item ) {
+	$options = array();
+	foreach ( (array) $cart_item['variation'] as $attribut => $valeur ) {
+		if ( '' === $valeur ) {
+			continue;
+		}
+		$taxonomie = str_replace( 'attribute_', '', $attribut );
+		$terme     = taxonomy_exists( $taxonomie ) ? get_term_by( 'slug', $valeur, $taxonomie ) : false;
+		$options[] = $terme ? $terme->name : $valeur;
+	}
+	return implode( ' · ', $options );
+}
+
+function chalet_code_postal_par_defaut( $paquets ) {
+	foreach ( $paquets as $i => $paquet ) {
+		if ( empty( $paquet['destination']['postcode'] ) ) {
+			$paquets[ $i ]['destination']['postcode'] = get_option( 'woocommerce_store_postcode' );
+		}
+	}
+	return $paquets;
+}
+add_filter( 'woocommerce_cart_shipping_packages', 'chalet_code_postal_par_defaut' );
+
+function chalet_nom_plat_panier( $produit ) {
+	$parent = $produit->get_parent_id() ? wc_get_product( $produit->get_parent_id() ) : false;
+	return $parent ? $parent->get_name() : $produit->get_name();
+}
+
+function chalet_info_retrait() {
+	return get_option( 'woocommerce_store_address' ) . ', du mardi au samedi aux heures d’ouverture';
+}
+
+/* --------------------------------------------------------------------------
+ * 9. Pied de page.
  * ------------------------------------------------------------------------ */
 function chalet_pied() {
 	$img = get_stylesheet_directory_uri() . '/assets/img/';

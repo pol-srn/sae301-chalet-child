@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.3.3
+Version:      1.4.3
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -49,6 +49,23 @@ Text Domain:  chalet-child
   --font-title: "Melodrama", Georgia, serif;
   --font-main: "DM Sans", Arial, sans-serif;
   --radius: 0.5rem;
+  --radius-petit: 0.25rem;
+
+  --font-size-petit: 0.875rem;
+  --font-size-prix: 1.25rem;
+  --letter-spacing-titre: 0.12em;
+
+  --space-4: 0.25rem;
+  --space-8: 0.5rem;
+  --space-12: 0.75rem;
+  --space-16: 1rem;
+  --space-24: 1.5rem;
+  --space-32: 2rem;
+  --space-48: 3rem;
+  --space-64: 4rem;
+  --addition-width: 26rem;
+  --visuel-panier: 5.5rem;
+  --visuel-panier-desktop: 7rem;
 }
 
 /* ==========================================================================
@@ -479,7 +496,8 @@ ul.products li.product .added_to_cart {
    6. Bouton du Chalet (double cadre) appliqué aux boutons WooCommerce
    ========================================================================== */
 .site-main ul.products li.product .button,
-.site-main .single_add_to_cart_button.button {
+.site-main .single_add_to_cart_button.button,
+.site-main .addition .checkout-button.button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -497,13 +515,15 @@ ul.products li.product .added_to_cart {
 }
 
 .site-main ul.products li.product .button:hover,
-.site-main .single_add_to_cart_button.button:hover {
+.site-main .single_add_to_cart_button.button:hover,
+.site-main .addition .checkout-button.button:hover {
   background: url("assets/img/bouton-principal-survol.svg") center no-repeat;
   color: var(--color-text-inverse);
 }
 
 .site-main ul.products li.product .button:focus-visible,
-.site-main .single_add_to_cart_button.button:focus-visible {
+.site-main .single_add_to_cart_button.button:focus-visible,
+.site-main .addition .checkout-button.button:focus-visible {
   outline: 2px solid var(--color-text-main);
   outline-offset: 2px;
 }
@@ -547,12 +567,14 @@ ul.products li.product .added_to_cart {
 }
 
 /* Sélecteur de quantité (maquette) : [ − ]  1  [ + ] */
-.single-product div.product form.cart .quantity {
+.single-product div.product form.cart .quantity,
+.plat-panier .quantity {
   display: flex;
   align-items: center;
 }
 
-.single-product div.product form.cart .quantity .qty {
+.single-product div.product form.cart .quantity .qty,
+.plat-panier .quantity .qty {
   width: 3.5rem;
   height: 2.75rem;
   padding: 0;
@@ -985,7 +1007,366 @@ ul.products li.product .added_to_cart {
 }
 
 /* ==========================================================================
-   10. Pied de page
+   10. IT-5 : panier (Vos plats + L'addition)
+   ========================================================================== */
+.woocommerce-cart .site-content {
+  padding-top: var(--space-48);
+  background-color: var(--color-bg-surface);
+}
+
+.site .woocommerce-message,
+.site .woocommerce-info,
+.site .woocommerce-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0 0 var(--space-24);
+  padding: var(--space-12) var(--space-16);
+  gap: var(--space-8) var(--space-12);
+  max-width: 40rem;
+  color: var(--color-text-main);
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-succes);
+  border-radius: var(--radius);
+  list-style: none;
+
+  &::before {
+    position: static;
+    content: "✓";
+    font-family: var(--font-main);
+    font-weight: 700;
+    color: var(--color-succes);
+  }
+
+  & a {
+    color: var(--color-accent);
+  }
+
+  .button {
+    order: 2;
+    margin-left: auto;
+    padding: 0;
+    font-size: var(--font-size-petit);
+    text-decoration: underline;
+    color: var(--color-accent);
+    background: none;
+    border: none;
+  }
+}
+
+.site .woocommerce-info {
+  border-left-color: var(--color-alerte);
+
+  &::before {
+    content: "!";
+    color: var(--color-alerte);
+  }
+}
+
+.site .woocommerce-error {
+  border-left-color: var(--color-erreur);
+
+  &::before {
+    content: "✕";
+    color: var(--color-erreur);
+  }
+}
+
+.panier {
+  display: grid;
+  align-items: start;
+  padding-bottom: var(--space-48);
+  gap: var(--space-32);
+
+  .panier__titre {
+    display: flex;
+    align-items: center;
+    margin: 0 0 var(--space-8);
+    gap: var(--space-12);
+    font-family: var(--font-main);
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .panier__titre::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .panier__liste {
+    margin: 0;
+    list-style: none;
+  }
+
+  .panier__maj {
+    display: none;
+  }
+
+  .cart-collaterals .cart_totals {
+    float: none;
+    width: auto;
+  }
+
+  @media (min-width: 64rem) {
+    grid-template-columns: minmax(0, 1fr) var(--addition-width);
+    gap: var(--space-48);
+  }
+}
+
+.plat-panier {
+  display: flex;
+  align-items: center;
+  padding: var(--space-16) 0;
+  gap: var(--space-16);
+  border-bottom: 1px solid var(--color-border);
+
+  .plat-panier__visuel {
+    flex: none;
+    width: var(--visuel-panier);
+  }
+
+  .plat-panier__visuel img {
+    width: 100%;
+    height: var(--visuel-panier);
+    object-fit: cover;
+    border-radius: var(--radius-petit);
+  }
+
+  .plat-panier__infos {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-8);
+    min-width: 0;
+  }
+
+  .plat-panier__ligne {
+    display: flex;
+    align-items: baseline;
+    margin: 0;
+    gap: var(--space-8);
+  }
+
+  & a.plat-panier__nom {
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--color-text-main);
+  }
+
+  .plat-panier__points {
+    flex: 1;
+    border-bottom: 1px dotted var(--color-accent);
+  }
+
+  .plat-panier__total {
+    font-size: var(--font-size-prix);
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--color-accent);
+  }
+
+  .plat-panier__options {
+    margin: 0;
+    font-size: var(--font-size-petit);
+    color: var(--color-accent);
+  }
+
+  .plat-panier__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8) var(--space-16);
+    font-size: var(--font-size-petit);
+  }
+
+  .plat-panier__prix-unitaire {
+    display: none;
+  }
+
+  .plat-panier__retirer {
+    text-decoration: underline;
+    color: var(--color-accent);
+  }
+
+  @media (min-width: 64rem) {
+    gap: var(--space-24);
+
+    .plat-panier__visuel {
+      width: var(--visuel-panier-desktop);
+    }
+
+    .plat-panier__visuel img {
+      height: var(--visuel-panier-desktop);
+    }
+
+    .plat-panier__prix-unitaire {
+      display: inline;
+    }
+  }
+}
+
+.addition {
+  position: relative;
+  padding: var(--space-4);
+  border: 1px solid var(--color-accent);
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    top: 3.75rem;
+    width: 0.625rem;
+    height: 0.625rem;
+    background-color: var(--color-bg-main);
+    border: 1px solid var(--color-accent);
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  &::before {
+    left: -0.375rem;
+  }
+
+  &::after {
+    right: -0.375rem;
+  }
+
+  .addition__fond {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-24) var(--space-16);
+    gap: var(--space-16);
+    background-color: var(--color-bg-main);
+    border: 1px solid var(--color-accent);
+  }
+
+  .addition__titre {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    gap: var(--space-12);
+    font-family: var(--font-main);
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .addition__titre::before,
+  .addition__titre::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .addition__ligne {
+    display: flex;
+    align-items: baseline;
+    margin: 0;
+    gap: var(--space-8);
+    font-weight: 700;
+  }
+
+  .addition__points {
+    flex: 1;
+    border-bottom: 1px dotted var(--color-accent);
+  }
+
+  .addition__montant {
+    font-size: var(--font-size-prix);
+    white-space: nowrap;
+    color: var(--color-accent);
+  }
+
+  .addition__ligne--total {
+    font-size: var(--font-size-prix);
+  }
+
+  .addition__action {
+    display: flex;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+  }
+
+  .addition__action .checkout-button::after {
+    display: none;
+  }
+
+  @media (min-width: 64rem) {
+    .addition__fond {
+      padding: var(--space-24);
+    }
+  }
+}
+
+.modes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+
+  .modes__question {
+    margin: 0;
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+  }
+
+  .modes__liste {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    gap: var(--space-12);
+    list-style: none;
+  }
+
+  .modes__item {
+    margin: 0;
+  }
+
+  .modes__option {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: var(--space-12) var(--space-16);
+    gap: var(--space-4) var(--space-8);
+    background-color: var(--color-bg-main);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+
+  .modes__option:has(:checked) {
+    border: 2px solid var(--color-accent);
+  }
+
+  .modes__option:has(:focus-visible) {
+    outline: 2px solid var(--color-text-main);
+    outline-offset: 2px;
+  }
+
+  .modes__radio {
+    margin: 0;
+    accent-color: var(--color-accent);
+  }
+
+  .modes__prix {
+    font-weight: 700;
+  }
+
+  .modes__info {
+    grid-column: 2 / -1;
+    font-size: var(--font-size-petit);
+    color: var(--color-accent);
+  }
+}
+
+/* ==========================================================================
+   11. Pied de page
    ========================================================================== */
 .site-footer {
   padding: 0;

@@ -1,8 +1,13 @@
-/* Fiche produit variable : quand on coche un bouton (Taille, Cuisson…),
-   on recopie la valeur dans la liste déroulante masquée de WooCommerce,
-   qui met alors à jour le prix et le stock de la sélection. */
+const SELECTEUR_RADIO_OPTION = ".choix__radio";
+const SELECTEUR_BOUTON_QUANTITE = ".quantite__bouton";
+const SELECTEUR_QUANTITE_PANIER = ".woocommerce-cart-form .qty";
+const SELECTEUR_MAJ_PANIER = ".woocommerce-cart-form [name='update_cart']";
+const DELAI_MAJ_PANIER = 600;
+
+let minuteurPanier;
+
 document.addEventListener("change", (evenement) => {
-  const bouton = evenement.target.closest(".choix__radio");
+  const bouton = evenement.target.closest(SELECTEUR_RADIO_OPTION);
   if (!bouton) {
     return;
   }
@@ -11,10 +16,8 @@ document.addEventListener("change", (evenement) => {
   liste.dispatchEvent(new Event("change", { bubbles: true }));
 });
 
-/* Boutons − et + du sélecteur de quantité : on modifie le champ de WooCommerce
-   en respectant son minimum, son maximum (stock) et son pas. */
 document.addEventListener("click", (evenement) => {
-  const bouton = evenement.target.closest(".quantite__bouton");
+  const bouton = evenement.target.closest(SELECTEUR_BOUTON_QUANTITE);
   if (!bouton) {
     return;
   }
@@ -25,4 +28,18 @@ document.addEventListener("click", (evenement) => {
     champ.stepDown();
   }
   champ.dispatchEvent(new Event("change", { bubbles: true }));
+});
+
+document.addEventListener("change", (evenement) => {
+  if (!evenement.target.matches(SELECTEUR_QUANTITE_PANIER)) {
+    return;
+  }
+  clearTimeout(minuteurPanier);
+  minuteurPanier = setTimeout(() => {
+    const miseAJour = document.querySelector(SELECTEUR_MAJ_PANIER);
+    if (miseAJour) {
+      miseAJour.disabled = false;
+      miseAJour.click();
+    }
+  }, DELAI_MAJ_PANIER);
 });
