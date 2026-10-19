@@ -624,6 +624,88 @@ function chalet_texte_bouton_commande() {
 add_filter( 'woocommerce_order_button_text', 'chalet_texte_bouton_commande' );
 
 /* --------------------------------------------------------------------------
+ * 8 bis. IT-8 : e-mails transactionnels (logo, couleurs et réglages communs dans
+ * WooCommerce › Réglages › E-mails ; pied dans woocommerce/emails/email-footer.php).
+ * ------------------------------------------------------------------------ */
+
+/* Styles ajoutés à ceux de WooCommerce, qui les écrit dans les balises (exigé par les messageries).
+   Polices de secours : les messageries ne chargent pas Melodrama ni DM Sans. */
+function chalet_styles_email( $css ) {
+	return $css . '
+		#template_header_image { background-color: #121f29; padding: 28px 20px 20px; text-align: center; }
+		#template_header_image p { margin: 0; }
+		#template_header_image img { width: 240px; max-width: 100%; height: auto; }
+		#header_wrapper h1, #body_content h2, #body_content h3 { font-family: Georgia, "Times New Roman", serif; font-weight: normal; color: #1e1a17; }
+		#template_footer { background-color: #121f29; }
+		#template_footer #credit, #template_footer #credit p { color: #ffffff; font-size: 13px; line-height: 150%; text-align: center; }
+		#template_footer #credit a { color: #ded1c3; }
+		.retrait-mail { margin: 0 0 24px; background-color: #8a6544; color: #ffffff; }
+		.retrait-mail td { padding: 24px; color: #ffffff; }
+		.retrait-mail__titre { margin: 0 0 16px; font-size: 12px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #ffffff; }
+		.retrait-mail__etape { margin: 0 0 12px; font-size: 14px; line-height: 150%; color: #ffffff; }
+		.retrait-mail__etape strong { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 18px; font-weight: normal; }
+		.retrait-mail__losange { color: #ded1c3; }
+		.retrait-mail__infos { margin: 16px 0 0; padding-top: 16px; border-top: 1px solid #ded1c3; font-size: 13px; line-height: 150%; color: #ffffff; }
+		.bouton-mail { margin: 8px 0 32px; text-align: center; }
+		.bouton-mail a { display: inline-block; padding: 16px 28px; background-color: #8a6544; color: #ffffff; font-weight: bold; letter-spacing: 1px; text-decoration: none; text-transform: uppercase; }
+	';
+}
+add_filter( 'woocommerce_email_styles', 'chalet_styles_email' );
+
+/* E-mails au client concernés par le retrait : commande en attente (virement) et en cours. */
+function chalet_email_retrait_concerne( $order, $sent_to_admin, $email ) {
+	$ids = array( 'customer_on_hold_order', 'customer_processing_order' );
+	return ! $sent_to_admin && $email && in_array( $email->id, $ids, true ) && $order->has_shipping_method( 'local_pickup' );
+}
+
+/* US-8.3 : instructions de retrait (WooCommerce › Click & Collect), avant le récapitulatif. */
+function chalet_email_instructions_retrait( $order, $sent_to_admin, $plain_text, $email ) {
+	if ( ! chalet_email_retrait_concerne( $order, $sent_to_admin, $email ) ) {
+		return;
+	}
+	$titre  = chalet_reglage_retrait( 'retrait_titre', 'Instructions pour le retrait' );
+	$etapes = chalet_etapes_retrait();
+	$infos  = chalet_adresse_retrait() . ' · ' . chalet_horaires_retrait();
+	if ( $plain_text ) {
+		echo "\n" . esc_html( mb_strtoupper( $titre ) ) . "\n";
+		foreach ( $etapes as $etape ) {
+			echo '- ' . esc_html( $etape['titre'] ) . ' : ' . esc_html( $etape['texte'] ) . "\n";
+		}
+		echo esc_html( $infos ) . "\n\n";
+		return;
+	}
+	?>
+	<table class="retrait-mail" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#8a6544">
+		<tr>
+			<td>
+				<p class="retrait-mail__titre"><?php echo esc_html( $titre ); ?></p>
+				<?php foreach ( $etapes as $etape ) : ?>
+					<p class="retrait-mail__etape"><strong><span class="retrait-mail__losange">◆</span> <?php echo esc_html( $etape['titre'] ); ?></strong><?php echo esc_html( $etape['texte'] ); ?></p>
+				<?php endforeach; ?>
+				<p class="retrait-mail__infos"><?php echo esc_html( $infos ); ?></p>
+			</td>
+		</tr>
+	</table>
+	<?php
+}
+add_action( 'woocommerce_email_order_details', 'chalet_email_instructions_retrait', 5, 4 );
+
+/* Bouton « Suivre ma commande » sous le récapitulatif, dans les e-mails de commande au client. */
+function chalet_email_bouton_suivi( $order, $sent_to_admin, $plain_text, $email ) {
+	$ids = array( 'customer_on_hold_order', 'customer_processing_order', 'customer_completed_order' );
+	if ( $sent_to_admin || ! $email || ! in_array( $email->id, $ids, true ) ) {
+		return;
+	}
+	$lien = $order->get_customer_id() ? $order->get_view_order_url() : wc_get_page_permalink( 'myaccount' );
+	if ( $plain_text ) {
+		echo 'Suivre ma commande : ' . esc_url( $lien ) . "\n\n";
+		return;
+	}
+	echo '<p class="bouton-mail"><a href="' . esc_url( $lien ) . '">Suivre ma commande</a></p>';
+}
+add_action( 'woocommerce_email_customer_details', 'chalet_email_bouton_suivi', 5, 4 );
+
+/* --------------------------------------------------------------------------
  * 9. Pied de page.
  * ------------------------------------------------------------------------ */
 function chalet_pied() {
