@@ -37,7 +37,7 @@ $raccourcis = array(
 		<?php if ( $derniere ) : ?>
 			<div class="derniere__tete">
 				<h3 class="derniere__titre" id="derniere-titre">Dernière commande</h3>
-				<span class="badge derniere__statut"><?php echo esc_html( wc_get_order_status_name( $derniere->get_status() ) ); ?></span>
+				<span class="badge derniere__statut <?php echo esc_attr( chalet_classe_badge( $derniere->get_status() ) ); ?>"><?php echo esc_html( wc_get_order_status_name( $derniere->get_status() ) ); ?></span>
 			</div>
 			<dl class="derniere__infos">
 				<div>

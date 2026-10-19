@@ -85,48 +85,7 @@ $etats = array( 'fait', 'en-cours', 'a-venir' );
 			</ol>
 		</section>
 
-		<div class="addition">
-			<div class="addition__fond">
-				<h2 class="addition__titre">L’addition</h2>
-				<div class="addition__detail">
-					<?php foreach ( $order->get_items() as $item ) : ?>
-						<p class="addition__ligne addition__ligne--plat">
-							<span class="addition__libelle"><?php echo esc_html( chalet_nom_plat_commande( $item ) ); ?> ×<?php echo absint( $item->get_quantity() ); ?></span>
-							<span class="addition__points" aria-hidden="true"></span>
-							<span class="addition__montant"><?php echo wp_kses_post( $order->get_formatted_line_subtotal( $item ) ); ?></span>
-						</p>
-						<?php $options = chalet_options_plat_commande( $item ); ?>
-						<?php if ( $options ) : ?>
-							<p class="addition__options"><?php echo esc_html( $options ); ?></p>
-						<?php endif; ?>
-					<?php endforeach; ?>
-					<p class="addition__ligne">
-						<span class="addition__libelle">Sous-total</span>
-						<span class="addition__points" aria-hidden="true"></span>
-						<span class="addition__montant"><?php echo wp_kses_post( wc_price( $order->get_subtotal(), array( 'currency' => $order->get_currency() ) ) ); ?></span>
-					</p>
-					<?php if ( $order->get_total_discount() > 0 ) : ?>
-						<p class="addition__ligne addition__ligne--plat">
-							<span class="addition__libelle">Réduction</span>
-							<span class="addition__points" aria-hidden="true"></span>
-							<span class="addition__montant">−<?php echo wp_kses_post( wc_price( $order->get_total_discount(), array( 'currency' => $order->get_currency() ) ) ); ?></span>
-						</p>
-					<?php endif; ?>
-					<?php if ( $order->get_shipping_method() ) : ?>
-						<p class="addition__ligne addition__ligne--plat">
-							<span class="addition__libelle"><?php echo esc_html( $order->get_shipping_method() ); ?></span>
-							<span class="addition__points" aria-hidden="true"></span>
-							<span class="addition__montant"><?php echo (float) $order->get_shipping_total() > 0 ? wp_kses_post( wc_price( $order->get_shipping_total(), array( 'currency' => $order->get_currency() ) ) ) : 'Gratuit'; ?></span>
-						</p>
-					<?php endif; ?>
-					<p class="addition__ligne addition__ligne--total">
-						<span class="addition__libelle">Total</span>
-						<span class="addition__points" aria-hidden="true"></span>
-						<span class="addition__montant"><?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></span>
-					</p>
-				</div>
-			</div>
-		</div>
+		<?php chalet_addition_commande( $order ); ?>
 	</div>
 
 	<p class="confirmation__actions">

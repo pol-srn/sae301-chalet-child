@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.8.1
+Version:      1.9.1
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -1329,7 +1329,14 @@ ul.products li.product .added_to_cart {
     accent-color: var(--color-accent);
   }
 
+  /* Colonnes fixes : avec un seul mode possible, WooCommerce remplace le rond par un champ caché
+     et le nom, le prix et l'adresse se décaleraient d'une colonne. */
+  .modes__nom {
+    grid-column: 2;
+  }
+
   .modes__prix {
+    grid-column: 3;
     font-weight: 700;
   }
 
@@ -2260,8 +2267,7 @@ ul.products li.product .added_to_cart {
   }
 }
 
-.badge.badge--statut,
-.derniere .badge {
+.badge.badge--statut {
   color: var(--color-text-main);
   background-color: var(--color-highlight);
 }
@@ -2462,6 +2468,256 @@ ul.products li.product .added_to_cart {
   a:not(.button) {
     color: var(--color-accent);
   }
+}
+
+/* ==========================================================================
+   IT-9 : Mon compte › Commandes et Détail commande (frise de suivi, annulation)
+   ========================================================================== */
+.commandes {
+  display: flex;
+  flex-direction: column;
+  margin: var(--space-24) 0 0;
+  gap: var(--space-12);
+  list-style: none;
+}
+
+.commande-carte {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: var(--space-16) var(--space-24);
+  gap: var(--space-12);
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+
+  .commande-carte__infos {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    gap: var(--space-12) var(--space-32);
+  }
+
+  dt {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  dd {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+
+  .commande-carte__mode {
+    font-size: 0.9375rem;
+    font-weight: 400;
+  }
+
+  .commande-carte__fin {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 0;
+    gap: var(--space-12) var(--space-24);
+  }
+
+  .commande-carte__action {
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  @media (min-width: 64rem) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.detail-commande {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+
+  .tableau__intro .badge {
+    margin-left: var(--space-8);
+    vertical-align: middle;
+  }
+
+  .detail-commande__bas {
+    display: grid;
+    align-items: start;
+    gap: var(--space-24);
+  }
+
+  @media (min-width: 64rem) {
+    gap: var(--space-32);
+
+    .detail-commande__bas {
+      grid-template-columns: var(--addition-width) minmax(0, 1fr);
+      gap: var(--space-32);
+    }
+  }
+}
+
+.suivi-commande,
+.imprevu,
+.messages-commande {
+  padding: var(--space-24);
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+}
+
+.suivi-commande__titre {
+  margin: 0 0 var(--space-16);
+  font-family: var(--font-main);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-titre);
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.suivi-commande__message {
+  margin: var(--space-16) 0 0;
+  font-size: var(--font-size-petit);
+}
+
+/* Frise : losange plein pour une étape faite ou en cours, vide pour une étape à venir. */
+.frise {
+  display: grid;
+  margin: 0;
+  gap: var(--space-16);
+  list-style: none;
+
+  .frise__etape {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding-left: var(--space-32);
+    gap: var(--space-4);
+  }
+
+  .frise__etape::before {
+    content: "";
+    position: absolute;
+    top: 0.45em;
+    left: var(--space-4);
+    width: 0.625rem;
+    height: 0.625rem;
+    background-color: var(--color-accent);
+    border: 1.5px solid var(--color-accent);
+    transform: rotate(45deg);
+  }
+
+  .frise__etape--a-venir::before {
+    background-color: var(--color-bg-main);
+  }
+
+  .frise__nom {
+    font-family: var(--font-title);
+    font-size: 1.125rem;
+    font-weight: 400;
+  }
+
+  .frise__etape--en-cours .frise__nom {
+    font-size: 1.25rem;
+  }
+
+  .frise__etape--a-venir .frise__nom {
+    color: var(--color-accent);
+  }
+
+  .frise__texte {
+    font-size: 0.8125rem;
+    color: var(--color-accent);
+  }
+
+  .frise__etape--en-cours .frise__texte {
+    font-weight: 700;
+  }
+
+  @media (min-width: 64rem) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+
+    .frise__etape {
+      align-items: center;
+      padding: var(--space-24) var(--space-8) 0;
+      text-align: center;
+    }
+
+    /* Filet de liaison entre les losanges, coupé avant la première et après la dernière étape. */
+    .frise__etape::after {
+      content: "";
+      position: absolute;
+      top: 0.5rem;
+      right: 0;
+      left: 0;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .frise__etape:first-child::after {
+      left: 50%;
+    }
+
+    .frise__etape:last-child::after {
+      right: 50%;
+    }
+
+    .frise__etape::before {
+      z-index: 1;
+      top: 0.2rem;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+    }
+  }
+}
+
+.imprevu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-12);
+
+  .imprevu__titre {
+    margin: 0;
+    font-size: 1.375rem;
+  }
+
+  .imprevu__texte {
+    margin: 0;
+    font-size: var(--font-size-petit);
+    color: var(--color-accent);
+  }
+}
+
+.messages-commande__liste {
+  margin: 0;
+  list-style: none;
+
+  li {
+    margin: 0 0 var(--space-12);
+    padding-bottom: var(--space-12);
+    border-bottom: 1px dotted var(--color-border);
+  }
+
+  .messages-commande__date {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--color-accent);
+  }
+}
+
+/* Storefront souligne tous les liens du contenu (.hentry .entry-content a). */
+#primary .commande-carte__action {
+  text-decoration: none;
 }
 
 /* IT-7 : connexion et création de compte depuis la page Commande. */

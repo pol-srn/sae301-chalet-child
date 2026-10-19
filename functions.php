@@ -413,6 +413,7 @@ function chalet_reglages_panier() {
 	remove_action( 'woocommerce_before_checkout_form', 'woocommerce_checkout_coupon_form', 10 );
 	remove_action( 'woocommerce_checkout_terms_and_conditions', 'wc_checkout_privacy_policy_text', 20 );
 	remove_action( 'woocommerce_thankyou', 'woocommerce_order_details_table', 10 ); // Remplacé par l'addition de thankyou.php.
+	remove_action( 'woocommerce_view_order', 'woocommerce_order_details_table', 10 ); // IT-9 : remplacé par l'addition de view-order.php.
 }
 add_action( 'init', 'chalet_reglages_panier' );
 
@@ -642,6 +643,7 @@ function chalet_styles_email( $css ) {
 		.retrait-mail { margin: 0 0 24px; background-color: #8a6544; color: #ffffff; }
 		.retrait-mail td { padding: 24px; color: #ffffff; }
 		.retrait-mail__titre { margin: 0 0 16px; font-size: 12px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #ffffff; }
+		.retrait-mail__numero { margin: 0 0 12px; font-family: Georgia, "Times New Roman", serif; font-size: 44px; line-height: 110%; color: #ffffff; }
 		.retrait-mail__etape { margin: 0 0 12px; font-size: 14px; line-height: 150%; color: #ffffff; }
 		.retrait-mail__etape strong { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 18px; font-weight: normal; }
 		.retrait-mail__losange { color: #ded1c3; }
@@ -692,7 +694,7 @@ add_action( 'woocommerce_email_order_details', 'chalet_email_instructions_retrai
 
 /* Bouton « Suivre ma commande » sous le récapitulatif, dans les e-mails de commande au client. */
 function chalet_email_bouton_suivi( $order, $sent_to_admin, $plain_text, $email ) {
-	$ids = array( 'customer_on_hold_order', 'customer_processing_order', 'customer_completed_order' );
+	$ids = array( 'customer_on_hold_order', 'customer_processing_order', 'customer_ready_order', 'customer_completed_order' );
 	if ( $sent_to_admin || ! $email || ! in_array( $email->id, $ids, true ) ) {
 		return;
 	}
@@ -704,6 +706,168 @@ function chalet_email_bouton_suivi( $order, $sent_to_admin, $plain_text, $email 
 	echo '<p class="bouton-mail"><a href="' . esc_url( $lien ) . '">Suivre ma commande</a></p>';
 }
 add_action( 'woocommerce_email_customer_details', 'chalet_email_bouton_suivi', 5, 4 );
+
+/* --------------------------------------------------------------------------
+ * 8 ter. IT-9 : commandes (statut « Prête à retirer », e-mail, annulation, suivi).
+ * ------------------------------------------------------------------------ */
+
+/* Addition en lecture seule d'une commande passée (page Confirmation et Mon compte › Détail commande). */
+function chalet_addition_commande( $order ) {
+	$devise = array( 'currency' => $order->get_currency() );
+	?>
+	<div class="addition">
+		<div class="addition__fond">
+			<h2 class="addition__titre">L’addition</h2>
+			<div class="addition__detail">
+				<?php foreach ( $order->get_items() as $item ) : ?>
+					<p class="addition__ligne addition__ligne--plat">
+						<span class="addition__libelle"><?php echo esc_html( chalet_nom_plat_commande( $item ) ); ?> ×<?php echo absint( $item->get_quantity() ); ?></span>
+						<span class="addition__points" aria-hidden="true"></span>
+						<span class="addition__montant"><?php echo wp_kses_post( $order->get_formatted_line_subtotal( $item ) ); ?></span>
+					</p>
+					<?php $options = chalet_options_plat_commande( $item ); ?>
+					<?php if ( $options ) : ?>
+						<p class="addition__options"><?php echo esc_html( $options ); ?></p>
+					<?php endif; ?>
+				<?php endforeach; ?>
+				<p class="addition__ligne">
+					<span class="addition__libelle">Sous-total</span>
+					<span class="addition__points" aria-hidden="true"></span>
+					<span class="addition__montant"><?php echo wp_kses_post( wc_price( $order->get_subtotal(), $devise ) ); ?></span>
+				</p>
+				<?php if ( $order->get_total_discount() > 0 ) : ?>
+					<p class="addition__ligne addition__ligne--plat">
+						<span class="addition__libelle">Réduction</span>
+						<span class="addition__points" aria-hidden="true"></span>
+						<span class="addition__montant">−<?php echo wp_kses_post( wc_price( $order->get_total_discount(), $devise ) ); ?></span>
+					</p>
+				<?php endif; ?>
+				<?php if ( $order->get_shipping_method() ) : ?>
+					<p class="addition__ligne addition__ligne--plat">
+						<span class="addition__libelle"><?php echo esc_html( $order->get_shipping_method() ); ?></span>
+						<span class="addition__points" aria-hidden="true"></span>
+						<span class="addition__montant"><?php echo (float) $order->get_shipping_total() > 0 ? wp_kses_post( wc_price( $order->get_shipping_total(), $devise ) ) : 'Gratuit'; ?></span>
+					</p>
+				<?php endif; ?>
+				<?php foreach ( $order->get_refunds() as $remboursement ) : ?>
+					<p class="addition__ligne addition__ligne--plat">
+						<span class="addition__libelle">Remboursement</span>
+						<span class="addition__points" aria-hidden="true"></span>
+						<span class="addition__montant">−<?php echo wp_kses_post( wc_price( $remboursement->get_amount(), $devise ) ); ?></span>
+					</p>
+				<?php endforeach; ?>
+				<p class="addition__ligne addition__ligne--total">
+					<span class="addition__libelle">Total</span>
+					<span class="addition__points" aria-hidden="true"></span>
+					<span class="addition__montant"><?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></span>
+				</p>
+			</div>
+		</div>
+	</div>
+	<?php
+}
+
+/* US-9.2 : statut « Prête à retirer », entre « En cours » et « Terminée ». */
+function chalet_statut_prete( $statuts ) {
+	$statuts['wc-prete'] = array(
+		'label'                     => 'Prête à retirer',
+		'public'                    => false,
+		'exclude_from_search'       => false,
+		'show_in_admin_all_list'    => true,
+		'show_in_admin_status_list' => true,
+		/* translators: %s: nombre de commandes. */
+		'label_count'               => _n_noop( 'Prête à retirer <span class="count">(%s)</span>', 'Prêtes à retirer <span class="count">(%s)</span>' ),
+	);
+	return $statuts;
+}
+add_filter( 'woocommerce_register_shop_order_post_statuses', 'chalet_statut_prete' );
+
+function chalet_liste_statuts( $statuts ) {
+	$liste = array();
+	foreach ( $statuts as $cle => $libelle ) {
+		$liste[ $cle ] = $libelle;
+		if ( 'wc-processing' === $cle ) {
+			$liste['wc-prete'] = 'Prête à retirer';
+		}
+	}
+	return $liste;
+}
+add_filter( 'wc_order_statuses', 'chalet_liste_statuts' );
+
+/* Action groupée dans WooCommerce › Commandes (WooCommerce traite seul les actions « mark_<statut> »). */
+function chalet_action_groupee_prete( $actions ) {
+	$actions['mark_prete'] = 'Passer en Prête à retirer';
+	return $actions;
+}
+add_filter( 'bulk_actions-woocommerce_page_wc-orders', 'chalet_action_groupee_prete' );
+add_filter( 'bulk_actions-edit-shop_order', 'chalet_action_groupee_prete' );
+
+/* Couleur du statut dans la liste des commandes du back-office. */
+function chalet_couleur_statut_admin() {
+	echo '<style>.order-status.status-prete{background:#e5af4a;color:#1e1a17}</style>';
+}
+add_action( 'admin_head', 'chalet_couleur_statut_admin' );
+
+/* US-9.2 : e-mail « Votre commande est prête » (classe dans inc/, gabarits dans woocommerce/emails/). */
+function chalet_email_commande_prete( $emails ) {
+	require_once get_stylesheet_directory() . '/inc/class-chalet-email-commande-prete.php';
+	$emails['Chalet_Email_Commande_Prete'] = new Chalet_Email_Commande_Prete();
+	return $emails;
+}
+add_filter( 'woocommerce_email_classes', 'chalet_email_commande_prete' );
+
+/* US-9.3 : le client peut annuler tant que la commande n'est pas prête (stock rétabli par WooCommerce). */
+function chalet_statuts_annulables( $statuts ) {
+	return array_unique( array_merge( $statuts, array( 'on-hold', 'processing' ) ) );
+}
+add_filter( 'woocommerce_valid_order_statuses_for_cancel', 'chalet_statuts_annulables' );
+
+/* Couleur du badge selon le statut (composant Badge du Design System). */
+function chalet_classe_badge( $statut ) {
+	$classes = array(
+		'processing' => 'badge--statut',
+		'prete'      => 'badge--statut',
+		'on-hold'    => 'badge--alerte',
+		'pending'    => 'badge--alerte',
+		'cancelled'  => 'badge--erreur',
+		'refunded'   => 'badge--erreur',
+		'failed'     => 'badge--erreur',
+	);
+	return $classes[ $statut ] ?? '';
+}
+
+/* Frise de suivi (Mon compte › Détail commande) : étapes, étape en cours et message selon le statut. */
+function chalet_suivi_commande( $order ) {
+	$statut  = $order->get_status();
+	$retrait = $order->has_shipping_method( 'local_pickup' );
+	if ( in_array( $statut, array( 'cancelled', 'refunded', 'failed' ), true ) ) {
+		$messages = array(
+			'cancelled' => 'Cette commande a été annulée. Le stock des plats a été rétabli.',
+			'refunded'  => 'Cette commande a été annulée et remboursée.',
+			'failed'    => 'Le paiement de cette commande n’a pas abouti.',
+		);
+		return array( 'etapes' => array(), 'message' => $messages[ $statut ] );
+	}
+	$etapes = array(
+		array( 'Reçue', wc_format_datetime( $order->get_date_created(), 'd/m · H \h i' ) ),
+		array( 'En préparation', 'Tout est fait maison' ),
+		$retrait ? array( 'Prête à retirer', 'Au comptoir, avec votre numéro' ) : array( 'En livraison', 'Vers votre adresse' ),
+		$retrait ? array( 'Retirée', 'cod' === $order->get_payment_method() ? 'Paiement au retrait' : 'Bon appétit !' ) : array( 'Livrée', 'Bon appétit !' ),
+	);
+	$position = array( 'pending' => 0, 'on-hold' => 0, 'processing' => 1, 'prete' => 2, 'completed' => 4 );
+	$courante = $position[ $statut ] ?? 0;
+	foreach ( $etapes as $i => $etape ) {
+		$etapes[ $i ][2] = $i < $courante ? 'faite' : ( $i === $courante ? 'en-cours' : 'a-venir' );
+	}
+	$messages = array(
+		'pending'    => 'Nous attendons votre paiement pour lancer la préparation.',
+		'on-hold'    => 'Nous attendons votre virement pour lancer la préparation.',
+		'processing' => 'Votre commande est en cuisine. Nous vous prévenons par e-mail dès qu’elle est prête.',
+		'prete'      => $retrait ? 'Votre commande vous attend au comptoir du Chalet.' : 'Votre commande est en route.',
+		'completed'  => 'Commande terminée. Merci et à bientôt au Chalet !',
+	);
+	return array( 'etapes' => $etapes, 'message' => $messages[ $statut ] ?? '' );
+}
 
 /* --------------------------------------------------------------------------
  * 9. Pied de page.
