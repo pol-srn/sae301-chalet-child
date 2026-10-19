@@ -1,6 +1,6 @@
 <?php
 /**
- * Panier du Chalet : choix du mode de retrait.
+ * Panier et Commande du Chalet : choix du mode de retrait.
  *
  * @see     https://woocommerce.com/document/template-structure/
  * @package chalet-child
@@ -9,10 +9,26 @@
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! is_cart() ) {
+if ( ! is_cart() && ! is_checkout() ) {
 	include WC()->plugin_path() . '/templates/cart/cart-shipping.php';
 	return;
 }
+
+/* Page Commande : le mode est choisi dans le panier, il n'est que rappelé ici (ligne de ticket + lien Modifier). */
+if ( is_checkout() && ! empty( $available_methods ) && is_array( $available_methods ) ) :
+	$methode = isset( $available_methods[ $chosen_method ] ) ? $available_methods[ $chosen_method ] : reset( $available_methods );
+	$cout    = (float) $methode->get_cost();
+	?>
+	<p class="woocommerce-shipping-totals shipping addition__ligne addition__ligne--plat addition__ligne--mode">
+		<input type="hidden" class="shipping_method" name="shipping_method[<?php echo absint( $index ); ?>]" data-index="<?php echo absint( $index ); ?>" value="<?php echo esc_attr( $methode->id ); ?>">
+		<span class="addition__libelle"><?php echo esc_html( $methode->get_label() ); ?></span>
+		<a class="addition__modifier" href="<?php echo esc_url( wc_get_cart_url() ); ?>">Modifier<span class="screen-reader-text"> le mode de retrait</span></a>
+		<span class="addition__points" aria-hidden="true"></span>
+		<span class="addition__montant"><?php echo $cout > 0 ? wp_kses_post( wc_price( $cout ) ) : 'Gratuit'; ?></span>
+	</p>
+	<?php
+	return;
+endif;
 ?>
 <div class="woocommerce-shipping-totals shipping modes">
 	<p class="modes__question">Comment récupérer votre commande ?</p>

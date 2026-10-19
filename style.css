@@ -4,22 +4,12 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.4.3
+Version:      1.6.1
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
 */
 
-/*
-  Reprise du Design System (tokens + composants BEM) appliquée aux classes de Storefront / WooCommerce.
-  Pas de @layer ici : un style rangé dans une couche perd toujours contre un style hors couche,
-  donc le CSS de Storefront (hors couche) l'emporterait sur le nôtre.
-  Mobile d'abord, puis @media (min-width: 64rem) pour le desktop.
-*/
-
-/* ==========================================================================
-   1. Variables (primitive tokens + semantic tokens)
-   ========================================================================== */
 :root {
   --color-or: #e5af4a;
   --color-caramel: #b58c67;
@@ -66,11 +56,20 @@ Text Domain:  chalet-child
   --addition-width: 26rem;
   --visuel-panier: 5.5rem;
   --visuel-panier-desktop: 7rem;
+  --font-size-etape: 1.375rem;
+  --font-size-bon: 1.75rem;
+  --font-size-saisie: 1.0625rem;
+  --font-size-tampon: 0.6875rem;
+  --font-size-tampon-mobile: 0.5625rem;
+  --losange: 0.75rem;
+  --radio-taille: 1rem;
+  --etapes-width: 56.25rem;
+  --tampon-taille: 6rem;
+  --tampon-taille-mobile: 4.75rem;
+  --tampon-rotation: -12deg;
 }
 
-/* ==========================================================================
-   2. Base : on remplace les polices et couleurs de Storefront
-   ========================================================================== */
+
 body {
   overflow-x: hidden;
   background-color: var(--color-bg-main);
@@ -109,9 +108,7 @@ a {
   margin: 0;
 }
 
-/* ==========================================================================
-   3. En-tête (barre + logo + titre sur la photo)
-   ========================================================================== */
+
 .site-header {
   margin: 0;
   padding: 0;
@@ -317,9 +314,7 @@ a {
   }
 }
 
-/* ==========================================================================
-   4. Page La Carte : intro + sections par catégorie
-   ========================================================================== */
+
 .home .site-main,
 .post-type-archive-product .site-main {
   margin-bottom: 0;
@@ -407,10 +402,7 @@ a {
   }
 }
 
-/* ==========================================================================
-   5. Grille et carte produit (ul.products de WooCommerce)
-   ========================================================================== */
-/* #primary : passe devant les règles de grille / largeur de Storefront et WooCommerce. */
+
 #primary ul.products {
   display: grid;
   grid-template-columns: minmax(0, 19.1875rem);
@@ -424,8 +416,7 @@ a {
   display: none;
 }
 
-/* #primary (id de la zone de contenu de Storefront) : un id passe devant toutes les règles
-   de Storefront qui fixent la largeur des cartes en % (même chargées après ce fichier). */
+
 #primary ul.products li.product {
   display: flex;
   flex-direction: column;
@@ -492,12 +483,11 @@ ul.products li.product .added_to_cart {
   }
 }
 
-/* ==========================================================================
-   6. Bouton du Chalet (double cadre) appliqué aux boutons WooCommerce
-   ========================================================================== */
+
 .site-main ul.products li.product .button,
 .site-main .single_add_to_cart_button.button,
-.site-main .addition .checkout-button.button {
+.site-main .addition .checkout-button.button,
+.site-main .addition .addition__commander.button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -516,21 +506,21 @@ ul.products li.product .added_to_cart {
 
 .site-main ul.products li.product .button:hover,
 .site-main .single_add_to_cart_button.button:hover,
-.site-main .addition .checkout-button.button:hover {
+.site-main .addition .checkout-button.button:hover,
+.site-main .addition .addition__commander.button:hover {
   background: url("assets/img/bouton-principal-survol.svg") center no-repeat;
   color: var(--color-text-inverse);
 }
 
 .site-main ul.products li.product .button:focus-visible,
 .site-main .single_add_to_cart_button.button:focus-visible,
-.site-main .addition .checkout-button.button:focus-visible {
+.site-main .addition .checkout-button.button:focus-visible,
+.site-main .addition .addition__commander.button:focus-visible {
   outline: 2px solid var(--color-text-main);
   outline-offset: 2px;
 }
 
-/* ==========================================================================
-   7. Fiche produit simple
-   ========================================================================== */
+
 .woocommerce-breadcrumb {
   margin: 0;
   padding: 1.5rem 0;
@@ -566,7 +556,6 @@ ul.products li.product .added_to_cart {
   margin: 0;
 }
 
-/* Sélecteur de quantité (maquette) : [ − ]  1  [ + ] */
 .single-product div.product form.cart .quantity,
 .plat-panier .quantity {
   display: flex;
@@ -654,9 +643,6 @@ ul.products li.product .added_to_cart {
   }
 }
 
-/* ==========================================================================
-   8. IT-3 : badges de stock, carte épuisée, sélecteur d'options
-   ========================================================================== */
 .badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;
@@ -697,7 +683,6 @@ ul.products li.product .added_to_cart {
   cursor: not-allowed;
 }
 
-/* Stock affiché sur la fiche (produit simple ou option choisie) : même rendu que .badge. */
 .single-product div.product p.stock {
   display: inline-block;
   margin: 0;
@@ -723,7 +708,6 @@ ul.products li.product .added_to_cart {
   background-color: var(--color-erreur);
 }
 
-/* Tableau des options de WooCommerce remis en simple pile de blocs. */
 .single-product div.product table.variations {
   display: block;
   margin: 0;
@@ -748,7 +732,6 @@ ul.products li.product .added_to_cart {
   }
 }
 
-/* Storefront donne aux fieldset un fond gris et un padding, et décale la legend vers la gauche : on annule. */
 .choix {
   margin: 0;
   padding: 0;
@@ -795,7 +778,6 @@ ul.products li.product .added_to_cart {
   }
 }
 
-/* Formulaire d'un produit variable : options, puis prix + stock, puis quantité et bouton côte à côte. */
 .single-product div.product form.variations_form {
   display: block;
 }
@@ -807,7 +789,6 @@ ul.products li.product .added_to_cart {
   gap: 1rem;
 }
 
-/* Prix et stock de l'option choisie, côte à côte. */
 .single-product div.product .single_variation {
   margin-bottom: 1.25rem;
 }
@@ -825,14 +806,9 @@ ul.products li.product .added_to_cart {
   font-weight: 700;
 }
 
-/* ==========================================================================
-   9. IT-4 : étiquette du plat (champs Origine et Allergènes)
-   ========================================================================== */
-/* Double cadre et encoches en losange, comme les boutons du Chalet. */
+
 .etiquette {
   position: relative;
-  /* Storefront coupe ce qui dépasse de la fiche (div.product { overflow: hidden }).
-     Un losange de 10 px tourné à 45° dépasse d'environ 8 px : marge de 10 px pour l'afficher en entier. */
   margin: 0 0.625rem 1.5rem;
   padding: 0.25rem;
   border: 1px solid var(--color-accent);
@@ -868,7 +844,6 @@ ul.products li.product .added_to_cart {
     text-align: center;
   }
 
-  /* Sceau rond, inspiré du macaron « Viande limousine » du site du Chalet. */
   .etiquette__sceau {
     display: flex;
     flex: none;
@@ -896,7 +871,6 @@ ul.products li.product .added_to_cart {
     letter-spacing: 0.1em;
   }
 
-  /* Petit filet or avec un losange au centre. */
   .etiquette__sceau-filet {
     position: relative;
     width: 2.25rem;
@@ -925,7 +899,6 @@ ul.products li.product .added_to_cart {
     width: 100%;
   }
 
-  /* Titre entre deux filets, comme le logo dans l'en-tête. */
   .etiquette__titre {
     display: flex;
     align-items: center;
@@ -963,7 +936,6 @@ ul.products li.product .added_to_cart {
     list-style: none;
   }
 
-  /* Séparateur : losange or entre deux allergènes. */
   .etiquette__allergenes li + li::before {
     content: "";
     display: inline-block;
@@ -976,8 +948,6 @@ ul.products li.product .added_to_cart {
   }
 
   @media (min-width: 64rem) {
-    /* En desktop, le losange de gauche tombe dans l'espace entre la photo et le texte :
-       pas de marge à gauche, l'étiquette reste alignée sur le titre et le prix. */
     margin-left: 0;
 
     .etiquette__fond {
@@ -1006,9 +976,7 @@ ul.products li.product .added_to_cart {
   }
 }
 
-/* ==========================================================================
-   10. IT-5 : panier (Vos plats + L'addition)
-   ========================================================================== */
+
 .woocommerce-cart .site-content {
   padding-top: var(--space-48);
   background-color: var(--color-bg-surface);
@@ -1305,6 +1273,10 @@ ul.products li.product .added_to_cart {
   }
 }
 
+#shipping_method .modes__radio {
+  margin: 0;
+}
+
 .modes {
   display: flex;
   flex-direction: column;
@@ -1350,6 +1322,8 @@ ul.products li.product .added_to_cart {
   }
 
   .modes__radio {
+    width: var(--radio-taille);
+    height: var(--radio-taille);
     margin: 0;
     accent-color: var(--color-accent);
   }
@@ -1365,9 +1339,583 @@ ul.products li.product .added_to_cart {
   }
 }
 
+
+.woocommerce-checkout .site-content {
+  background-color: var(--color-bg-surface);
+}
+
+.retrait {
+  margin: 0 calc(50% - 50vw) var(--space-48);
+  padding: var(--space-32) var(--space-16);
+  color: var(--color-text-inverse);
+  background-color: var(--color-accent);
+
+  .retrait__titre {
+    margin: 0 0 var(--space-24);
+    font-family: var(--font-main);
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-align: center;
+    text-transform: uppercase;
+    color: var(--color-text-inverse);
+  }
+
+  .retrait__etapes {
+    display: grid;
+    max-width: var(--etapes-width);
+    margin: 0 auto;
+    padding: 0;
+    gap: var(--space-24);
+    list-style: none;
+  }
+
+  .retrait__etapes li {
+    position: relative;
+    margin: 0;
+    padding-left: var(--space-32);
+    font-size: var(--font-size-petit);
+    line-height: 1.5;
+  }
+
+  .retrait__etapes li::after {
+    content: "";
+    position: absolute;
+    top: var(--space-8);
+    left: var(--space-4);
+    width: var(--losange);
+    height: var(--losange);
+    background-color: var(--color-border);
+    transform: rotate(45deg);
+  }
+
+  .retrait__etapes strong {
+    display: block;
+    margin-bottom: var(--space-4);
+    font-family: var(--font-title);
+    font-size: var(--font-size-etape);
+    font-weight: 400;
+    color: var(--color-text-inverse);
+  }
+
+  .retrait__infos {
+    margin: var(--space-24) 0 0;
+    font-size: var(--font-size-petit);
+    text-align: center;
+  }
+
+  @media (min-width: 64rem) {
+    .retrait__etapes {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+    }
+
+    .retrait__etapes li {
+      padding: var(--space-32) var(--space-16) 0;
+      text-align: center;
+    }
+
+    .retrait__etapes li::before {
+      content: "";
+      position: absolute;
+      top: var(--space-8);
+      right: 0;
+      left: 0;
+      border-top: 1px solid var(--color-text-inverse);
+    }
+
+    .retrait__etapes li:first-child::before {
+      left: 50%;
+    }
+
+    .retrait__etapes li:last-child::before {
+      right: 50%;
+    }
+
+    .retrait__etapes li::after {
+      top: var(--space-4);
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+    }
+  }
+}
+
+.commande {
+  display: grid;
+  align-items: start;
+  padding-bottom: var(--space-48);
+  gap: var(--space-32);
+
+  @media (min-width: 64rem) {
+    grid-template-columns: minmax(0, 1fr) var(--addition-width);
+    gap: var(--space-48);
+  }
+}
+
+.bon {
+  position: relative;
+  padding: var(--space-32) var(--space-16);
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+
+  .bon__titre {
+    margin: 0 0 var(--space-4);
+    padding-right: var(--tampon-taille-mobile);
+    font-size: var(--font-size-bon);
+    color: var(--color-text-main);
+  }
+
+  .bon__sous-titre {
+    margin: 0 0 var(--space-32);
+    padding-right: var(--tampon-taille-mobile);
+    font-size: var(--font-size-petit);
+    color: var(--color-accent);
+  }
+
+  .bon__tampon {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: var(--space-12);
+    right: var(--space-12);
+    width: var(--tampon-taille-mobile);
+    height: var(--tampon-taille-mobile);
+    margin: 0;
+    font-size: var(--font-size-tampon-mobile);
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: var(--letter-spacing-titre);
+    text-align: center;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    border: 2px solid var(--color-accent);
+    border-radius: 50%;
+    outline: 1px solid var(--color-accent);
+    outline-offset: 3px;
+    transform: rotate(var(--tampon-rotation));
+  }
+
+  .bon__champs {
+    display: grid;
+    gap: var(--space-24);
+  }
+
+  .bon__champ {
+    margin: 0;
+    padding: 0;
+  }
+
+  .bon__champ--cache,
+  .bon__champ--adresse {
+    display: none;
+  }
+
+  .bon__libelle {
+    display: block;
+    margin-bottom: var(--space-4);
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .bon__libelle .optional {
+    font-weight: 400;
+    text-transform: none;
+  }
+
+  .bon__libelle .required {
+    display: none;
+  }
+
+  .bon__saisie {
+    width: 100%;
+    padding: var(--space-8) 0;
+    font-family: var(--font-title);
+    font-size: var(--font-size-saisie);
+    color: var(--color-text-main);
+    background: none;
+    border: 0;
+    border-bottom: 1px dotted var(--color-accent);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .bon__saisie:focus {
+    border-bottom-style: solid;
+    outline: 2px solid var(--color-text-main);
+    outline-offset: 2px;
+  }
+
+  .bon__champ--note .bon__saisie {
+    min-height: 0;
+    font-style: italic;
+    resize: none;
+  }
+
+  .woocommerce-invalid .bon__saisie {
+    border-bottom: 1px solid var(--color-erreur);
+  }
+
+  @media (min-width: 64rem) {
+    padding: var(--space-32);
+
+    .bon__titre,
+    .bon__sous-titre {
+      padding-right: var(--tampon-taille);
+    }
+
+    .bon__tampon {
+      top: var(--space-16);
+      right: var(--space-24);
+      width: var(--tampon-taille);
+      height: var(--tampon-taille);
+      font-size: var(--font-size-tampon);
+    }
+
+    .bon__champs {
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-24) var(--space-32);
+    }
+
+    .bon__champ--plein {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.commande:has(.shipping_method[value^="flat_rate"]) .bon__champ--adresse {
+  display: block;
+}
+
+.addition {
+  .addition__contenu,
+  .addition__detail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-16);
+  }
+
+  .addition__ligne--plat {
+    font-weight: 400;
+  }
+
+  .addition__ligne--plat .addition__montant {
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .addition__modifier {
+    font-size: var(--font-size-petit);
+    font-weight: 400;
+    text-decoration: underline;
+    color: var(--color-accent);
+  }
+
+  .addition__options {
+    margin: calc(var(--space-12) * -1) 0 0;
+    font-size: var(--font-size-petit);
+    color: var(--color-accent);
+  }
+}
+
+.paiement {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+
+  .paiement__question {
+    margin: 0;
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+  }
+
+  .paiement__liste {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    gap: var(--space-12);
+    list-style: none;
+  }
+
+  .paiement__option {
+    margin: 0;
+    padding: var(--space-12) var(--space-16);
+    background-color: var(--color-bg-main);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+  }
+
+  .paiement__option:has(:checked) {
+    border: 2px solid var(--color-accent);
+  }
+
+  .paiement__option:has(:focus-visible) {
+    outline: 2px solid var(--color-text-main);
+    outline-offset: 2px;
+  }
+
+  .paiement__choix {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--space-8);
+    cursor: pointer;
+  }
+
+  .paiement__radio {
+    width: var(--radio-taille);
+    height: var(--radio-taille);
+    margin: 0;
+    accent-color: var(--color-accent);
+  }
+
+  .paiement__lieu {
+    font-weight: 700;
+  }
+
+  .paiement__info {
+    padding-left: calc(var(--radio-taille) + var(--space-8));
+    font-size: var(--font-size-petit);
+    color: var(--color-accent);
+  }
+
+  .paiement__info p {
+    margin: var(--space-4) 0 0;
+  }
+
+}
+
+#payment.paiement .place-order {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: var(--space-8) 0 0;
+  padding: 0;
+  gap: var(--space-12);
+  background: none;
+}
+
+#payment.paiement .place-order .button {
+  width: 12.4375rem;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
 /* ==========================================================================
-   11. Pied de page
+   IT-6 : page Confirmation (Merci !)
    ========================================================================== */
+.woocommerce-order-received .site-content {
+  padding-top: var(--space-48);
+}
+
+.confirmation {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-48);
+  gap: var(--space-24);
+
+  .confirmation__message {
+    flex-wrap: nowrap;
+    max-width: none;
+    margin: 0;
+  }
+
+  .confirmation__colonnes {
+    display: grid;
+    align-items: start;
+    gap: var(--space-24);
+  }
+
+  .confirmation__actions {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    margin: var(--space-8) 0 0;
+    gap: var(--space-16);
+  }
+
+  .confirmation__bouton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12.4375rem;
+    height: 3.75rem;
+    padding: 0 0.625rem;
+    border: none;
+    background: url("assets/img/bouton-principal.svg") center no-repeat;
+    color: var(--color-text-inverse);
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .confirmation__bouton--secondaire {
+    background-image: url("assets/img/bouton-secondaire.svg");
+    color: var(--color-accent);
+  }
+
+  .confirmation__bouton:hover {
+    background-image: url("assets/img/bouton-principal-survol.svg");
+    color: var(--color-text-inverse);
+  }
+
+  .confirmation__bouton:focus-visible {
+    outline: 2px solid var(--color-text-main);
+    outline-offset: 2px;
+  }
+
+  /* Coordonnées bancaires affichées par WooCommerce pour le virement. */
+  .woocommerce-bacs-bank-details {
+    padding: var(--space-16) var(--space-24);
+    background-color: var(--color-bg-main);
+    border: 1px solid var(--color-border);
+  }
+
+  .woocommerce-bacs-bank-details h2,
+  .woocommerce-bacs-bank-details h3 {
+    margin: 0 0 var(--space-8);
+    font-size: var(--font-size-prix);
+  }
+
+  .woocommerce-bacs-bank-details ul {
+    margin: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 64rem) {
+    .confirmation__colonnes {
+      grid-template-columns: minmax(0, 1fr) var(--addition-width);
+      gap: var(--space-48);
+    }
+
+    .confirmation__actions {
+      flex-direction: row;
+      justify-content: center;
+      gap: var(--space-24);
+    }
+  }
+}
+
+.recap {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  gap: var(--space-12);
+  list-style: none;
+
+  .recap__carte {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: var(--space-12) var(--space-16);
+    gap: var(--space-4);
+    background-color: var(--color-bg-main);
+    border: 1px solid var(--color-border);
+  }
+
+  .recap__libelle {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .recap__valeur {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+  }
+
+  @media (min-width: 64rem) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-16);
+
+    .recap__carte {
+      padding: var(--space-16) var(--space-24);
+    }
+
+    .recap__valeur {
+      font-size: var(--font-size-prix);
+    }
+  }
+}
+
+.suivi {
+  padding: var(--space-24);
+  color: var(--color-text-inverse);
+  background-color: var(--color-accent);
+
+  .suivi__libelle {
+    margin: 0 0 var(--space-16);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+  }
+
+  .suivi__titre {
+    margin: 0 0 var(--space-16);
+    font-size: var(--font-size-bon);
+    color: var(--color-text-inverse);
+  }
+
+  .suivi__adresse {
+    margin: 0 0 var(--space-24);
+    font-size: var(--font-size-petit);
+    line-height: 1.6;
+  }
+
+  .suivi__etapes {
+    display: grid;
+    margin: 0;
+    gap: var(--space-24);
+    list-style: none;
+  }
+
+  .suivi__etape {
+    position: relative;
+    margin: 0;
+    padding-left: var(--space-32);
+    font-size: var(--font-size-petit);
+    line-height: 1.5;
+  }
+
+  /* Losange lin : plein pour les étapes faites ou en cours, vide pour l'étape à venir. */
+  .suivi__etape::before {
+    content: "";
+    position: absolute;
+    top: var(--space-8);
+    left: var(--space-4);
+    width: var(--losange);
+    height: var(--losange);
+    background-color: var(--color-border);
+    border: 1px solid var(--color-border);
+    transform: rotate(45deg);
+  }
+
+  .suivi__etape--a-venir::before {
+    background-color: transparent;
+  }
+
+  .suivi__etape strong {
+    display: block;
+    margin-bottom: var(--space-4);
+    font-family: var(--font-title);
+    font-size: var(--font-size-etape);
+    font-weight: 400;
+  }
+
+  @media (min-width: 64rem) {
+    padding: var(--space-32);
+  }
+}
+
 .site-footer {
   padding: 0;
   background-color: var(--color-bg-footer);
@@ -1438,8 +1986,7 @@ ul.products li.product .added_to_cart {
   }
 }
 
-/* Storefront colore les liens du footer avec « .site-footer a:not(.button):not(.components-button) »,
-   dans un style chargé après le nôtre : #colophon (id du footer de Storefront) passe devant. */
+
 #colophon .pied a.pied__lien,
 #colophon .pied .pied__infos a,
 #colophon .pied a.pied__reseau {

@@ -6,6 +6,7 @@
  * IT-3 : niveaux de stock (US-3.1), sélecteur d'options en boutons (US-3.2, US-3.3).
  * IT-4 : champs personnalisés Origine et Allergènes créés avec SCF (US-4.1), étiquette du plat avant le prix (US-4.3, US-4.4).
  * IT-5 : page Panier « Vos plats » + « L'addition » (US-5.3), choix du mode de retrait (US-5.2, US-5.4).
+ * IT-6 : page Commande « Bon de commande » + « L'addition », instructions de retrait modifiables (US-6.1, US-6.2).
  *
  * @package chalet-child
  */
@@ -88,6 +89,9 @@ function chalet_titre_page() {
 	if ( is_product() ) {
 		$categories = get_the_terms( get_the_ID(), 'product_cat' );
 		return ( $categories && ! is_wp_error( $categories ) ) ? $categories[0]->name : 'La Carte';
+	}
+	if ( is_order_received_page() ) {
+		return 'Merci !';
 	}
 	if ( is_singular() ) {
 		return get_the_title();
@@ -400,13 +404,22 @@ function chalet_etiquette_plat() {
 add_action( 'woocommerce_single_product_summary', 'chalet_etiquette_plat', 6 );
 
 /* --------------------------------------------------------------------------
- * 8. IT-5 : panier.
+ * 8. IT-5 et IT-6 : panier et commande.
  * ------------------------------------------------------------------------ */
 function chalet_reglages_panier() {
 	remove_action( 'storefront_page', 'storefront_page_header', 10 );
 	remove_action( 'woocommerce_cart_collaterals', 'woocommerce_cross_sell_display' );
+	remove_action( 'woocommerce_before_checkout_form', 'woocommerce_checkout_coupon_form', 10 );
+	remove_action( 'woocommerce_checkout_terms_and_conditions', 'wc_checkout_privacy_policy_text', 20 );
+	remove_action( 'woocommerce_thankyou', 'woocommerce_order_details_table', 10 ); // Remplacé par l'addition de thankyou.php.
 }
 add_action( 'init', 'chalet_reglages_panier' );
+
+/* « Poursuivre les achats » ramène à La Carte, pas à la fiche produit d'où vient le client. */
+function chalet_retour_carte() {
+	return wc_get_page_permalink( 'shop' );
+}
+add_filter( 'woocommerce_continue_shopping_redirect', 'chalet_retour_carte' );
 
 function chalet_options_plat_panier( $cart_item ) {
 	$options = array();
@@ -436,9 +449,152 @@ function chalet_nom_plat_panier( $produit ) {
 	return $parent ? $parent->get_name() : $produit->get_name();
 }
 
-function chalet_info_retrait() {
-	return get_option( 'woocommerce_store_address' ) . ', du mardi au samedi aux heures d’ouverture';
+/* Page Confirmation (IT-6) : nom et options d'un plat d'une commande passée. */
+function chalet_nom_plat_commande( $item ) {
+	$produit = $item->get_product();
+	return $produit ? chalet_nom_plat_panier( $produit ) : $item->get_name();
 }
+
+function chalet_options_plat_commande( $item ) {
+	$produit = $item->get_product();
+	if ( ! $produit || ! $produit->is_type( 'variation' ) ) {
+		return '';
+	}
+	// Mêmes options que dans le panier : attributs de la variante commandée ;
+	// une option « n'importe laquelle » (vide) est relue dans la ligne de commande.
+	$attributs = $produit->get_variation_attributes();
+	foreach ( $attributs as $cle => $valeur ) {
+		if ( '' === $valeur ) {
+			$attributs[ $cle ] = (string) $item->get_meta( str_replace( 'attribute_', '', $cle ) );
+		}
+	}
+	return chalet_options_plat_panier( array( 'variation' => $attributs ) );
+}
+
+/* US-6.1 : instructions de retrait réglées dans WooCommerce → Click & Collect (page d'options SCF). */
+function chalet_reglage_retrait( $champ, $defaut ) {
+	$valeur = function_exists( 'get_field' ) ? get_field( $champ, 'option' ) : '';
+	return $valeur ? $valeur : $defaut;
+}
+
+function chalet_etapes_retrait() {
+	$defaut = array(
+		array( 'titre' => 'Vous commandez', 'texte' => 'Votre commande part en cuisine dès sa validation.' ),
+		array( 'titre' => 'Nous préparons', 'texte' => 'Comptez environ 20 minutes, tout est fait maison.' ),
+		array( 'titre' => 'Vous récupérez', 'texte' => 'Au comptoir, avec votre numéro de commande.' ),
+	);
+	// Une ligne enregistrée sans titre est ignorée ; sans aucune étape remplie, on garde le texte par défaut.
+	$etapes = array_filter(
+		(array) chalet_reglage_retrait( 'retrait_etapes', array() ),
+		function ( $etape ) {
+			return ! empty( $etape['titre'] );
+		}
+	);
+	return $etapes ? array_values( $etapes ) : $defaut;
+}
+
+function chalet_adresse_retrait() {
+	return chalet_reglage_retrait( 'retrait_adresse', '5 rue des Filles Notre-Dame, 87000 Limoges' );
+}
+
+function chalet_horaires_retrait() {
+	return chalet_reglage_retrait( 'retrait_horaires', 'du mardi au samedi · 12h–14h · 19h30–22h30' );
+}
+
+function chalet_info_retrait() {
+	return chalet_adresse_retrait() . ', ' . chalet_horaires_retrait();
+}
+
+function chalet_bande_retrait() {
+	?>
+	<div class="retrait">
+		<h2 class="retrait__titre"><?php echo esc_html( chalet_reglage_retrait( 'retrait_titre', 'Instructions pour le retrait' ) ); ?></h2>
+		<ol class="retrait__etapes">
+			<?php foreach ( chalet_etapes_retrait() as $etape ) : ?>
+				<li><strong><?php echo esc_html( $etape['titre'] ); ?></strong><?php echo esc_html( $etape['texte'] ); ?></li>
+			<?php endforeach; ?>
+		</ol>
+		<p class="retrait__infos"><?php echo esc_html( chalet_adresse_retrait() . ' · ' . chalet_horaires_retrait() ); ?></p>
+	</div>
+	<?php
+}
+add_action( 'woocommerce_before_checkout_form', 'chalet_bande_retrait', 5 );
+
+function chalet_livraison_choisie() {
+	$methodes = WC()->session ? (array) WC()->session->get( 'chosen_shipping_methods', array() ) : array();
+	$methode  = (string) reset( $methodes );
+	return '' !== $methode && ! str_starts_with( $methode, 'local_pickup' );
+}
+
+function chalet_champs_commande( $champs ) {
+	$libelles = array(
+		'billing_first_name' => 'Prénom',
+		'billing_last_name'  => 'Nom',
+		'billing_phone'      => 'Téléphone',
+		'billing_email'      => 'E-mail',
+		'billing_address_1'  => 'Adresse de livraison',
+		'billing_postcode'   => 'Code postal',
+		'billing_city'       => 'Ville',
+	);
+	$adresse = array( 'billing_address_1', 'billing_postcode', 'billing_city' );
+	$ordre   = 10;
+	foreach ( array_keys( $champs['billing'] ) as $cle ) {
+		if ( 'billing_country' === $cle ) {
+			$champs['billing'][ $cle ] = array(
+				'type'     => 'hidden',
+				'class'    => array( 'bon__champ--cache' ),
+				'default'  => get_option( 'woocommerce_default_country' ),
+				'priority' => 100,
+			);
+			continue;
+		}
+		if ( ! isset( $libelles[ $cle ] ) ) {
+			unset( $champs['billing'][ $cle ] );
+			continue;
+		}
+		$est_adresse = in_array( $cle, $adresse, true );
+		$classes     = array( 'bon__champ' );
+		if ( $est_adresse ) {
+			$classes[] = 'bon__champ--adresse';
+		}
+		if ( 'billing_address_1' === $cle ) {
+			$classes[] = 'bon__champ--plein';
+		}
+		$champs['billing'][ $cle ] = array_merge(
+			$champs['billing'][ $cle ],
+			array(
+				'label'       => $libelles[ $cle ],
+				'required'    => ! $est_adresse || chalet_livraison_choisie(),
+				'placeholder' => '',
+				'class'       => $classes,
+				'label_class' => array( 'bon__libelle' ),
+				'input_class' => array( 'bon__saisie' ),
+				'priority'    => $ordre,
+			)
+		);
+		$ordre += 10;
+	}
+	if ( isset( $champs['order']['order_comments'] ) ) {
+		$champs['order']['order_comments'] = array_merge(
+			$champs['order']['order_comments'],
+			array(
+				'label'       => 'Un mot pour la cuisine',
+				'placeholder' => 'Sans oignons, une allergie…',
+				'class'       => array( 'bon__champ', 'bon__champ--plein', 'bon__champ--note' ),
+				'label_class' => array( 'bon__libelle' ),
+				'input_class' => array( 'bon__saisie' ),
+				'custom_attributes' => array( 'rows' => 1 ),
+			)
+		);
+	}
+	return $champs;
+}
+add_filter( 'woocommerce_checkout_fields', 'chalet_champs_commande', 20 );
+
+function chalet_texte_bouton_commande() {
+	return 'Commander';
+}
+add_filter( 'woocommerce_order_button_text', 'chalet_texte_bouton_commande' );
 
 /* --------------------------------------------------------------------------
  * 9. Pied de page.
