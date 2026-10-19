@@ -4,7 +4,7 @@
  *
  * @see     https://woocommerce.com/document/template-structure/
  * @package chalet-child
- * @version 8.1.0
+ * @version 11.2.0
  */
 
 defined( 'ABSPATH' ) || exit;

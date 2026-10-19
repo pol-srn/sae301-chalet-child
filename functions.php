@@ -171,7 +171,8 @@ function chalet_menu_par_defaut() {
 			$liens[ $categorie->name ] = get_term_link( $categorie );
 		}
 	}
-	$liens['Panier'] = wc_get_cart_url();
+	$liens['Mon compte'] = wc_get_page_permalink( 'myaccount' ); // IT-7.
+	$liens['Panier']     = wc_get_cart_url();
 
 	echo '<ul class="entete__sous-menu">';
 	foreach ( $liens as $texte => $url ) {
@@ -415,6 +416,19 @@ function chalet_reglages_panier() {
 }
 add_action( 'init', 'chalet_reglages_panier' );
 
+/* IT-7 : navigation de Mon compte (filtre natif) ; « Téléchargements » ne sert pas à un restaurant. */
+function chalet_menu_compte( $items ) {
+	$libelles = array(
+		'dashboard'       => 'Tableau de bord',
+		'orders'          => 'Commandes',
+		'edit-address'    => 'Adresses',
+		'edit-account'    => 'Détails du compte',
+		'customer-logout' => 'Déconnexion',
+	);
+	return array_intersect_key( $libelles, $items );
+}
+add_filter( 'woocommerce_account_menu_items', 'chalet_menu_compte' );
+
 /* « Poursuivre les achats » ramène à La Carte, pas à la fiche produit d'où vient le client. */
 function chalet_retour_carte() {
 	return wc_get_page_permalink( 'shop' );
@@ -573,6 +587,19 @@ function chalet_champs_commande( $champs ) {
 			)
 		);
 		$ordre += 10;
+	}
+	// IT-7 : mot de passe du compte créé pendant la commande, au style du Bon de commande.
+	foreach ( (array) ( $champs['account'] ?? array() ) as $cle => $champ ) {
+		$champs['account'][ $cle ] = array_merge(
+			$champ,
+			array(
+				'label'       => 'account_password' === $cle ? 'Mot de passe du compte' : $champ['label'],
+				'placeholder' => '',
+				'class'       => array( 'bon__champ' ),
+				'label_class' => array( 'bon__libelle' ),
+				'input_class' => array( 'bon__saisie' ),
+			)
+		);
 	}
 	if ( isset( $champs['order']['order_comments'] ) ) {
 		$champs['order']['order_comments'] = array_merge(

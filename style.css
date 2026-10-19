@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.6.1
+Version:      1.7.3
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -54,6 +54,7 @@ Text Domain:  chalet-child
   --space-48: 3rem;
   --space-64: 4rem;
   --addition-width: 26rem;
+  --nav-compte-width: 17.5rem;
   --visuel-panier: 5.5rem;
   --visuel-panier-desktop: 7rem;
   --font-size-etape: 1.375rem;
@@ -1542,10 +1543,44 @@ ul.products li.product .added_to_cart {
     box-shadow: none;
   }
 
-  .bon__saisie:focus {
+  /* Storefront grise les champs en saisie avec input[type=…]:focus, plus spécifique que .bon__saisie. */
+  .bon__saisie:focus,
+  .bon__saisie[type]:focus {
     border-bottom-style: solid;
     outline: 2px solid var(--color-text-main);
     outline-offset: 2px;
+    background: none;
+  }
+
+  /* Bouton natif de WooCommerce pour afficher le mot de passe. */
+  .password-input {
+    display: block;
+    position: relative;
+  }
+
+  .show-password-input {
+    top: 50%;
+    right: 0;
+    padding: var(--space-8);
+    color: var(--color-accent);
+    background: none;
+    transform: translateY(-50%);
+  }
+
+  .show-password-input:hover,
+  .show-password-input:focus-visible {
+    color: var(--color-text-main);
+    background: none;
+  }
+
+  /* Storefront passe l'icône en #e8e8e8 quand le mot de passe est visible : illisible sur blanc. */
+  .show-password-input.display-password::after {
+    color: var(--color-accent);
+  }
+
+  .woocommerce-password-strength,
+  .woocommerce-password-hint {
+    font-size: var(--font-size-petit);
   }
 
   .bon__champ--note .bon__saisie {
@@ -1914,6 +1949,639 @@ ul.products li.product .added_to_cart {
   @media (min-width: 64rem) {
     padding: var(--space-32);
   }
+}
+
+/* ==========================================================================
+   IT-7 : Mon compte (connexion, navigation, tableau de bord, formulaires)
+   ========================================================================== */
+.woocommerce-account .site-content {
+  padding-top: var(--space-48);
+  background-color: var(--color-bg-surface);
+}
+
+/* Storefront place la navigation et le contenu en colonnes flottantes : remplacé par une grille. */
+.woocommerce-account .site-main > .type-page .woocommerce {
+  display: grid;
+  align-items: start;
+  padding-bottom: var(--space-48);
+  gap: var(--space-24);
+
+  @media (min-width: 64rem) {
+    grid-template-columns: var(--nav-compte-width) minmax(0, 1fr);
+    gap: var(--space-48);
+
+    .woocommerce-notices-wrapper {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.woocommerce-account .site-main > .type-page .woocommerce:has(.compte-acces) {
+  display: block;
+}
+
+.woocommerce-account .woocommerce-MyAccount-navigation,
+.woocommerce-account .woocommerce-MyAccount-content {
+  float: none;
+  width: auto;
+  margin: 0;
+}
+
+.compte__bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12.4375rem;
+  height: 3.75rem;
+  padding: 0 0.625rem;
+  border: none;
+  background: url("assets/img/bouton-principal.svg") center no-repeat;
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-petit);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &:hover {
+    background-image: url("assets/img/bouton-principal-survol.svg");
+    color: var(--color-text-inverse);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-text-main);
+    outline-offset: 2px;
+  }
+}
+
+/* Spécificité renforcée : Storefront colore tous les .button en gris. */
+.site-main .compte__bouton.button,
+.site-main .compte__bouton.button:hover {
+  background-color: transparent;
+}
+
+.site-main .compte__bouton--secondaire.button {
+  background-image: url("assets/img/bouton-secondaire.svg");
+  color: var(--color-accent);
+}
+
+.site-main .compte__bouton--secondaire.button:hover {
+  background-image: url("assets/img/bouton-principal-survol.svg");
+  color: var(--color-text-inverse);
+}
+
+/* Connexion et création de compte (visiteur non connecté). */
+.compte-acces {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-48);
+  gap: var(--space-24);
+
+  .compte-acces__intro {
+    margin: 0;
+    color: var(--color-accent);
+  }
+
+  .compte-acces__cartes {
+    display: grid;
+    align-items: stretch;
+    gap: var(--space-24);
+  }
+
+  .compte-acces__formulaire {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-24);
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .bon__titre,
+  .bon__sous-titre {
+    padding-right: 0;
+  }
+
+  .compte-acces__case {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    gap: var(--space-8);
+  }
+
+  .compte-acces__case input {
+    width: var(--radio-taille);
+    height: var(--radio-taille);
+    margin: 0;
+    accent-color: var(--color-accent);
+  }
+
+  .compte-acces__lien,
+  .compte-acces__note,
+  .woocommerce-privacy-policy-text p {
+    margin: 0;
+    font-size: var(--font-size-petit);
+    color: var(--color-accent);
+  }
+
+  .compte-acces__lien a {
+    text-decoration: underline;
+    color: var(--color-accent);
+  }
+
+  .compte-acces__action {
+    margin: 0;
+  }
+
+  .compte-acces__avantages {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    gap: var(--space-8);
+    list-style: none;
+  }
+
+  .compte-acces__avantages li {
+    position: relative;
+    padding-left: var(--space-24);
+  }
+
+  .compte-acces__avantages li::before {
+    content: "";
+    position: absolute;
+    top: 0.45em;
+    left: var(--space-4);
+    width: var(--space-8);
+    height: var(--space-8);
+    background-color: var(--color-accent);
+    transform: rotate(45deg);
+  }
+
+  @media (min-width: 64rem) {
+    .compte-acces__cartes {
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-48);
+    }
+
+    .compte-acces__avantages {
+      flex-direction: row;
+      justify-content: center;
+      gap: var(--space-48);
+    }
+  }
+}
+
+/* Navigation du compte (liste native de WooCommerce). */
+.woocommerce-MyAccount-navigation {
+  ul {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    gap: var(--space-8);
+    list-style: none;
+  }
+
+  ul li {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  /* Storefront ajoute une icône devant chaque lien. */
+  ul li a::before {
+    display: none;
+  }
+
+  ul li a {
+    display: block;
+    padding: var(--space-8) var(--space-16);
+    font-size: 0.9375rem;
+    text-decoration: none;
+    color: var(--color-text-main);
+    background-color: var(--color-bg-main);
+    border: 1px solid var(--color-border);
+  }
+
+  ul li.is-active a {
+    font-weight: 500;
+    color: var(--color-text-inverse);
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  ul li a:hover,
+  ul li a:focus-visible {
+    border-color: var(--color-accent);
+  }
+
+  .woocommerce-MyAccount-navigation-link--customer-logout a {
+    text-decoration: underline;
+    color: var(--color-accent);
+  }
+
+  @media (min-width: 64rem) {
+    padding: var(--space-12);
+    background-color: var(--color-bg-main);
+    border: 1px solid var(--color-border);
+
+    &::before {
+      content: "Mon compte";
+      display: block;
+      padding: var(--space-8) var(--space-16);
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: var(--letter-spacing-titre);
+      text-transform: uppercase;
+      color: var(--color-accent);
+    }
+
+    ul {
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    ul li a {
+      padding: var(--space-12) var(--space-16);
+      background-color: transparent;
+      border-color: transparent;
+    }
+
+    ul li.is-active a {
+      background-color: var(--color-accent);
+    }
+  }
+}
+
+/* Storefront remet l'espacement horizontal des onglets à 0 et une bordure par ligne
+   (.hentry .entry-content .woocommerce-MyAccount-navigation ul li… a) : l'id #primary passe devant. */
+#primary .woocommerce-MyAccount-navigation {
+  li {
+    border: 0;
+  }
+
+  li a {
+    padding: var(--space-8) var(--space-16);
+  }
+
+  @media (min-width: 64rem) {
+    li a {
+      padding: var(--space-12) var(--space-16);
+    }
+  }
+}
+
+/* Storefront souligne tous les liens du contenu (.hentry .entry-content a). */
+#primary .raccourcis__lien {
+  text-decoration: none;
+}
+
+/* Tableau de bord. */
+.tableau {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+
+  .tableau__titre {
+    margin: 0 0 var(--space-8);
+    font-size: 1.75rem;
+  }
+
+  .tableau__intro {
+    margin: 0;
+    color: var(--color-accent);
+  }
+
+  @media (min-width: 64rem) {
+    gap: var(--space-32);
+
+    .tableau__titre {
+      font-size: 2.25rem;
+    }
+  }
+}
+
+.badge.badge--statut,
+.derniere .badge {
+  color: var(--color-text-main);
+  background-color: var(--color-highlight);
+}
+
+.derniere {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-24);
+  gap: var(--space-16);
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+
+  .derniere__tete {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-12);
+  }
+
+  .derniere__titre {
+    margin: 0;
+    font-size: 1.375rem;
+  }
+
+  .derniere__infos {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    gap: var(--space-12) var(--space-32);
+  }
+
+  .derniere__infos dt {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .derniere__infos dd {
+    margin: 0;
+    font-size: var(--font-size-prix);
+    font-weight: 700;
+  }
+
+  .derniere__mode,
+  .derniere__action {
+    margin: 0;
+  }
+
+  .derniere__mode {
+    font-size: var(--font-size-petit);
+    color: var(--color-accent);
+  }
+
+  @media (min-width: 64rem) {
+    padding: var(--space-32);
+
+    .derniere__titre {
+      font-size: 1.625rem;
+    }
+  }
+}
+
+.raccourcis {
+  display: grid;
+  margin: 0;
+  gap: var(--space-12);
+  list-style: none;
+
+  .raccourcis__item {
+    margin: 0;
+  }
+
+  .raccourcis__lien {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: var(--space-24);
+    gap: var(--space-4);
+    text-decoration: none;
+    background-color: var(--color-bg-main);
+    border: 1px solid var(--color-border);
+  }
+
+  .raccourcis__lien:hover,
+  .raccourcis__lien:focus-visible {
+    border-color: var(--color-accent);
+  }
+
+  .raccourcis__titre {
+    font-family: var(--font-title);
+    font-size: 1.375rem;
+    color: var(--color-text-main);
+  }
+
+  .raccourcis__titre::after {
+    content: " →";
+    font-family: var(--font-main);
+    color: var(--color-accent);
+  }
+
+  .raccourcis__texte {
+    font-size: var(--font-size-petit);
+    color: var(--color-accent);
+  }
+
+  @media (min-width: 64rem) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-24);
+  }
+}
+
+/* Autres pages du compte (commandes, adresses, détails) : formulaires et tableaux dans la charte. */
+.woocommerce-MyAccount-content {
+  h2,
+  h3 {
+    font-size: 1.625rem;
+  }
+
+  .woocommerce-orders-table,
+  .woocommerce-table--order-details,
+  .woocommerce-Address,
+  .woocommerce-EditAccountForm,
+  .woocommerce-address-fields {
+    padding: var(--space-24);
+    background-color: var(--color-bg-main);
+    border: 1px solid var(--color-border);
+  }
+
+  table th,
+  table td {
+    padding: var(--space-12);
+    background-color: transparent;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  table thead th {
+    font-size: 0.6875rem;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  label {
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  input.input-text,
+  select {
+    padding: var(--space-8) 0;
+    font-size: var(--font-size-saisie);
+    background: none;
+    border: 0;
+    border-bottom: 1px dotted var(--color-accent);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  input.input-text:focus {
+    border-bottom-style: solid;
+    outline: 2px solid var(--color-text-main);
+    outline-offset: 2px;
+  }
+
+  fieldset legend {
+    font-family: var(--font-title);
+    font-size: 1.375rem;
+  }
+
+  .button {
+    padding: var(--space-12) var(--space-24);
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-text-inverse);
+    background-color: var(--color-accent);
+    border: 0;
+  }
+
+  .button:hover,
+  .button:focus-visible {
+    color: var(--color-text-inverse);
+    background-color: var(--color-text-main);
+  }
+
+  .compte__bouton.button {
+    padding: 0 0.625rem;
+    background-color: transparent;
+  }
+
+  a:not(.button) {
+    color: var(--color-accent);
+  }
+}
+
+/* IT-7 : connexion et création de compte depuis la page Commande. */
+.bon {
+  .bon__compte {
+    display: flex;
+    flex-direction: column;
+    margin-top: var(--space-24);
+    gap: var(--space-16);
+  }
+
+  .bon__case {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    gap: var(--space-8);
+    font-size: var(--font-size-petit);
+  }
+
+  .bon__case input {
+    width: var(--radio-taille);
+    height: var(--radio-taille);
+    margin: 0;
+    accent-color: var(--color-accent);
+  }
+}
+
+/* Formulaire « Déjà client ? » de WooCommerce (global/form-login.php), sans surcharge de gabarit. */
+.woocommerce-checkout form.woocommerce-form-login {
+  margin: 0 0 var(--space-32);
+  padding: var(--space-24);
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+
+  > p:first-child {
+    font-size: var(--font-size-petit);
+    color: var(--color-accent);
+  }
+
+  label:not(.woocommerce-form-login__rememberme) {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .required {
+    display: none;
+  }
+
+  .input-text {
+    padding: var(--space-8) 0;
+    font-family: var(--font-title);
+    font-size: var(--font-size-saisie);
+    color: var(--color-text-main);
+    background: none;
+    border: 0;
+    border-bottom: 1px dotted var(--color-accent);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .input-text:focus {
+    border-bottom-style: solid;
+    outline: 2px solid var(--color-text-main);
+    outline-offset: 2px;
+    background: none;
+  }
+
+  .show-password-input {
+    color: var(--color-accent);
+    background: none;
+  }
+
+  .woocommerce-form-login__rememberme {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--space-16);
+    gap: var(--space-8);
+    font-size: var(--font-size-petit);
+  }
+
+  .woocommerce-form-login__rememberme input {
+    margin: 0;
+    accent-color: var(--color-accent);
+  }
+
+  .woocommerce-form-login__submit.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12.4375rem;
+    height: 3.75rem;
+    padding: 0 0.625rem;
+    border: none;
+    background: url("assets/img/bouton-principal.svg") center no-repeat;
+    color: var(--color-text-inverse);
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .woocommerce-form-login__submit.button:hover {
+    background: url("assets/img/bouton-principal-survol.svg") center no-repeat;
+    color: var(--color-text-inverse);
+  }
+
+  .lost_password a {
+    font-size: var(--font-size-petit);
+    color: var(--color-accent);
+  }
+}
+
+/* Fond jaune du remplissage automatique des navigateurs : on garde le fond de la carte. */
+.bon__saisie:-webkit-autofill,
+.woocommerce-form-login .input-text:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 100px var(--color-bg-main) inset;
 }
 
 .site-footer {

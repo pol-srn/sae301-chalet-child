@@ -35,6 +35,25 @@ if ( ! $checkout->is_registration_enabled() && $checkout->is_registration_requir
 				}
 				?>
 			</div>
+			<?php if ( ! is_user_logged_in() && $checkout->is_registration_enabled() ) : // IT-7 : créer son compte en commandant (repris de checkout/form-billing.php). ?>
+				<div class="woocommerce-account-fields bon__compte">
+					<?php if ( ! $checkout->is_registration_required() ) : ?>
+						<p class="create-account bon__case">
+							<input class="woocommerce-form__input-checkbox input-checkbox" id="createaccount" <?php checked( true === $checkout->get_value( 'createaccount' ) || true === apply_filters( 'woocommerce_create_account_default_checked', false ), true ); ?> type="checkbox" name="createaccount" value="1">
+							<label for="createaccount">Créer un compte pour suivre mes commandes</label>
+						</p>
+					<?php endif; ?>
+					<?php do_action( 'woocommerce_before_checkout_registration_form', $checkout ); ?>
+					<?php if ( $checkout->get_checkout_fields( 'account' ) ) : ?>
+						<div class="create-account bon__champs">
+							<?php foreach ( $checkout->get_checkout_fields( 'account' ) as $cle => $champ ) : ?>
+								<?php woocommerce_form_field( $cle, $champ, $checkout->get_value( $cle ) ); ?>
+							<?php endforeach; ?>
+						</div>
+					<?php endif; ?>
+					<?php do_action( 'woocommerce_after_checkout_registration_form', $checkout ); ?>
+				</div>
+			<?php endif; ?>
 			<?php do_action( 'woocommerce_checkout_after_customer_details' ); ?>
 		</section>
 		<div class="addition">
