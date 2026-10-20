@@ -32,13 +32,11 @@ defined( 'ABSPATH' ) || exit;
 		<span class="addition__points" aria-hidden="true"></span>
 		<span class="addition__montant"><?php wc_cart_totals_subtotal_html(); ?></span>
 	</p>
-	<?php foreach ( WC()->cart->get_coupons() as $code => $coupon ) : ?>
-		<p class="addition__ligne">
-			<span class="addition__libelle"><?php wc_cart_totals_coupon_label( $coupon ); ?></span>
-			<span class="addition__points" aria-hidden="true"></span>
-			<span class="addition__montant"><?php wc_cart_totals_coupon_html( $coupon ); ?></span>
-		</p>
-	<?php endforeach; ?>
+	<?php
+	foreach ( WC()->cart->get_coupons() as $code => $coupon ) {
+		chalet_ligne_code_promo( $code ); // IT-10 : même ligne que dans le panier.
+	}
+	?>
 	<?php if ( WC()->cart->needs_shipping() && WC()->cart->show_shipping() ) : ?>
 		<?php do_action( 'woocommerce_review_order_before_shipping' ); ?>
 		<?php wc_cart_totals_shipping_html(); ?>

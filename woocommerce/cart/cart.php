@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 do_action( 'woocommerce_before_cart' );
 ?>
 <div class="panier">
-	<form class="woocommerce-cart-form panier__plats" action="<?php echo esc_url( wc_get_cart_url() ); ?>" method="post">
+	<form id="chalet-panier" class="woocommerce-cart-form panier__plats" action="<?php echo esc_url( wc_get_cart_url() ); ?>" method="post">
 		<?php do_action( 'woocommerce_before_cart_table' ); ?>
 		<h2 class="panier__titre">Vos plats · <?php echo absint( WC()->cart->get_cart_contents_count() ); ?></h2>
 		<ul class="panier__liste">

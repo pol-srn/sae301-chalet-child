@@ -870,6 +870,70 @@ function chalet_suivi_commande( $order ) {
 }
 
 /* --------------------------------------------------------------------------
+ * 8 quater. IT-10 : codes promo (créés dans Marketing › Codes promo).
+ * ------------------------------------------------------------------------ */
+
+/* Ligne de l'addition pour un code appliqué : « Code CHALET10 · Retirer ……… −2,38 € ».
+   La classe woocommerce-remove-coupon est reconnue par les scripts du panier et de la commande (retrait sans rechargement). */
+function chalet_ligne_code_promo( $code ) {
+	$montant = WC()->cart->get_coupon_discount_amount( $code, WC()->cart->display_cart_ex_tax );
+	$retrait = add_query_arg( 'remove_coupon', rawurlencode( $code ), is_checkout() ? wc_get_checkout_url() : wc_get_cart_url() );
+	?>
+	<p class="addition__ligne addition__ligne--plat addition__ligne--code">
+		<span class="addition__libelle">Code <?php echo esc_html( mb_strtoupper( $code ) ); ?></span>
+		<a class="woocommerce-remove-coupon addition__retirer" href="<?php echo esc_url( $retrait ); ?>" data-coupon="<?php echo esc_attr( $code ); ?>">Retirer<span class="screen-reader-text"> le code <?php echo esc_html( mb_strtoupper( $code ) ); ?></span></a>
+		<span class="addition__points" aria-hidden="true"></span>
+		<span class="addition__montant">−<?php echo wp_kses_post( wc_price( $montant ) ); ?></span>
+	</p>
+	<?php
+}
+
+/* Champ « Un code promo ? » de l'addition du panier. L'addition est hors du formulaire du panier :
+   l'attribut form="chalet-panier" rattache le champ et le bouton au formulaire (traitement natif de WooCommerce). */
+function chalet_champ_code_promo() {
+	?>
+	<div class="code-promo">
+		<label class="code-promo__libelle" for="coupon_code">Un code promo ?</label>
+		<div class="code-promo__ligne">
+			<input class="code-promo__saisie input-text" type="text" name="coupon_code" id="coupon_code" form="chalet-panier" placeholder="Saisissez votre code" autocomplete="off">
+			<button class="code-promo__bouton" type="submit" name="apply_coupon" value="Appliquer" form="chalet-panier">Appliquer</button>
+		</div>
+	</div>
+	<?php
+}
+
+/* US-10.3 : messages des codes promo, clairs et utiles pour le client. */
+function chalet_message_code_promo( $message, $code_message, $coupon ) {
+	$code = $coupon ? mb_strtoupper( $coupon->get_code() ) : '';
+	if ( WC_Coupon::WC_COUPON_SUCCESS === $code_message ) {
+		return 'Le code ' . $code . ' a été appliqué : la réduction apparaît dans l’addition.';
+	}
+	if ( WC_Coupon::WC_COUPON_REMOVED === $code_message ) {
+		return 'Le code ' . $code . ' a été retiré.';
+	}
+	return $message;
+}
+add_filter( 'woocommerce_coupon_message', 'chalet_message_code_promo', 10, 3 );
+
+function chalet_erreur_code_promo( $erreur, $code_erreur, $coupon ) {
+	$code = $coupon ? mb_strtoupper( $coupon->get_code() ) : '';
+	switch ( $code_erreur ) {
+		case WC_Coupon::E_WC_COUPON_NOT_EXIST:
+			return 'Le code « ' . esc_html( $code ) . ' » n’existe pas. Vérifiez l’orthographe.';
+		case WC_Coupon::E_WC_COUPON_EXPIRED:
+			$date = $coupon->get_date_expires();
+			return 'Le code ' . esc_html( $code ) . ' a expiré' . ( $date ? ' le ' . $date->date_i18n( 'd/m/Y' ) : '' ) . '.';
+		case WC_Coupon::E_WC_COUPON_NOT_APPLICABLE:
+			$plats = array_filter( array_map( 'get_the_title', $coupon->get_product_ids() ) );
+			return 'Le code ' . esc_html( $code ) . ( $plats ? ' ne s’applique qu’à : ' . esc_html( implode( ', ', $plats ) ) . '. Ajoutez l’un de ces plats.' : ' ne s’applique à aucun plat de votre panier.' );
+		case WC_Coupon::E_WC_COUPON_PLEASE_ENTER:
+			return 'Saisissez un code promo.';
+	}
+	return $erreur;
+}
+add_filter( 'woocommerce_coupon_error', 'chalet_erreur_code_promo', 10, 3 );
+
+/* --------------------------------------------------------------------------
  * 9. Pied de page.
  * ------------------------------------------------------------------------ */
 function chalet_pied() {

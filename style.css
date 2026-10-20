@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.9.1
+Version:      1.10.1
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -986,9 +986,10 @@ ul.products li.product .added_to_cart {
 .site .woocommerce-message,
 .site .woocommerce-info,
 .site .woocommerce-error {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  /* Grille : l'icône garde sa colonne, un texte long passe à la ligne à côté d'elle. */
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
   margin: 0 0 var(--space-24);
   padding: var(--space-12) var(--space-16);
   gap: var(--space-8) var(--space-12);
@@ -1012,15 +1013,31 @@ ul.products li.product .added_to_cart {
     color: var(--color-accent);
   }
 
+  /* Messages d'erreur : une liste <ul><li>, chaque ligne dans la colonne du texte. */
+  & > li {
+    grid-column: 2;
+    margin: 0;
+  }
+
   .button {
     order: 2;
-    margin-left: auto;
+    grid-column: 2;
+    justify-self: start;
     padding: 0;
     font-size: var(--font-size-petit);
     text-decoration: underline;
     color: var(--color-accent);
     background: none;
     border: none;
+  }
+
+  @media (min-width: 64rem) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+
+    .button {
+      grid-column: 3;
+      align-self: center;
+    }
   }
 }
 
@@ -2468,6 +2485,85 @@ ul.products li.product .added_to_cart {
   a:not(.button) {
     color: var(--color-accent);
   }
+}
+
+/* ==========================================================================
+   IT-10 : code promo dans l'addition (champ de saisie, ligne de réduction)
+   ========================================================================== */
+.addition {
+  .addition__retirer {
+    font-size: var(--font-size-petit);
+    font-weight: 400;
+    text-decoration: underline;
+    color: var(--color-accent);
+  }
+}
+
+.code-promo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  .code-promo__libelle {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .code-promo__ligne {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-16);
+  }
+
+  .code-promo__bouton {
+    flex: none;
+    padding: var(--space-8) 0;
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-decoration: underline;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .code-promo__bouton:hover,
+  .code-promo__bouton:focus-visible {
+    color: var(--color-text-main);
+    background: none;
+  }
+
+  .code-promo__bouton:focus-visible {
+    outline: 2px solid var(--color-text-main);
+    outline-offset: 2px;
+  }
+}
+
+/* Spécificité renforcée : Storefront donne un fond gris aux champs (et en saisie). */
+.code-promo input.code-promo__saisie,
+.code-promo input.code-promo__saisie:focus {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-8) 0;
+  font-family: var(--font-title);
+  font-size: var(--font-size-saisie);
+  color: var(--color-text-main);
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted var(--color-accent);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.code-promo input.code-promo__saisie:focus {
+  border-bottom-style: solid;
+  outline: 2px solid var(--color-text-main);
+  outline-offset: 2px;
 }
 
 /* ==========================================================================
