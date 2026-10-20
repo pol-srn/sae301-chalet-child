@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.10.1
+Version:      1.11.0
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -3015,4 +3015,349 @@ ul.products li.product .added_to_cart {
 
 #colophon .pied li:first-child a.pied__lien {
   color: var(--color-lin);
+}
+
+/* ==========================================================================
+   IT-11 : L'équipe (archive-membre.php) et fiche Membre (single-membre.php)
+   ========================================================================== */
+.post-type-archive-membre .site-content,
+.single-membre .site-content {
+  padding: var(--space-48) 0 var(--space-64);
+  background-color: var(--color-bg-surface);
+}
+
+.equipe,
+.membre {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-48);
+}
+
+/* Petits titres en capitales (poste, surtitre, label). */
+.equipe__surtitre,
+.carte-membre__poste,
+.membre__poste,
+#primary .membre__label {
+  margin: 0;
+  font-family: var(--font-main);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-titre);
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.equipe__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+
+  .equipe__titre {
+    margin: 0;
+    font-size: 1.75rem;
+  }
+
+  .equipe__chapeau {
+    max-width: 40rem;
+    margin: 0;
+    line-height: 1.5;
+    color: var(--color-accent);
+  }
+
+  @media (min-width: 64rem) {
+    align-items: center;
+    text-align: center;
+
+    .equipe__titre {
+      font-size: 2rem;
+    }
+  }
+}
+
+.equipe__liste {
+  display: grid;
+  margin: 0;
+  gap: var(--space-24);
+  list-style: none;
+
+  @media (min-width: 64rem) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2.5rem;
+  }
+}
+
+/* Carte membre (composant Figma). */
+.carte-membre {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  overflow: hidden;
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-petit);
+
+  .carte-membre__photo img {
+    display: block;
+    width: 100%;
+    height: 20rem;
+    object-fit: cover;
+    object-position: center 25%;
+  }
+
+  .carte-membre__corps {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    align-items: center;
+    padding: var(--space-24);
+    gap: var(--space-8);
+    text-align: center;
+  }
+
+  .carte-membre__nom {
+    margin: 0;
+    font-size: 1.75rem;
+  }
+
+  .carte-membre__citation {
+    margin: 0;
+    font-size: var(--font-size-petit);
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--color-accent);
+  }
+
+  @media (min-width: 64rem) {
+    .carte-membre__photo img {
+      height: 26.25rem;
+    }
+
+    .carte-membre__nom {
+      font-size: 2rem;
+    }
+  }
+}
+
+/* Bouton secondaire (cadre), poussé en bas de la carte. */
+#primary .carte-membre__bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12.4375rem;
+  height: 3.75rem;
+  margin-top: auto;
+  padding: 0 0.625rem;
+  background: url("assets/img/bouton-secondaire.svg") center no-repeat;
+  color: var(--color-accent);
+  font-size: var(--font-size-petit);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &:hover {
+    background-image: url("assets/img/bouton-principal-survol.svg");
+    color: var(--color-text-inverse);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-text-main);
+    outline-offset: 2px;
+  }
+}
+
+/* Fiche membre. */
+#primary .membre__retour {
+  align-self: flex-start;
+  font-weight: 500;
+  color: var(--color-accent);
+  text-decoration: underline;
+
+  &::before {
+    content: "← ";
+    display: inline-block;
+    margin-right: var(--space-4);
+    text-decoration: none;
+  }
+}
+
+.membre__profil {
+  display: grid;
+  gap: var(--space-32);
+
+  .membre__photo img {
+    display: block;
+    width: 100%;
+    height: 26.25rem;
+    object-fit: cover;
+    object-position: center 25%;
+  }
+
+  .membre__fiche {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-24);
+  }
+
+  .membre__identite {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-12);
+  }
+
+  .membre__nom {
+    margin: 0;
+    font-size: 2.5rem;
+    line-height: 1.1;
+  }
+
+  .membre__depuis {
+    margin: 0;
+    padding: 0.375rem 0.875rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    background-color: var(--color-border);
+    border-radius: 999px;
+  }
+
+  .membre__presentation p {
+    margin: 0 0 var(--space-16);
+    line-height: 1.6;
+  }
+
+  .membre__presentation p:last-child {
+    margin-bottom: 0;
+  }
+
+  @media (min-width: 64rem) {
+    grid-template-columns: 30rem minmax(0, 1fr);
+    gap: var(--space-64);
+    align-items: start;
+
+    .membre__photo img {
+      height: 37.5rem;
+    }
+
+    .membre__nom {
+      font-size: 4rem;
+    }
+  }
+}
+
+/* Storefront met les citations en italique avec une grande marge : on reprend la maquette. */
+#primary .membre__citation {
+  margin: 0;
+  padding: 0 0 0 var(--space-24);
+  border-left: 3px solid var(--color-caramel);
+
+  p {
+    margin: 0;
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+    font-style: normal;
+    line-height: 1.4;
+    color: var(--color-text-main);
+  }
+
+  @media (min-width: 64rem) {
+    p {
+      font-size: 1.5rem;
+    }
+  }
+}
+
+.membre__plat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.plat-signature {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  padding: var(--space-16);
+  gap: var(--space-8) var(--space-16);
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-petit);
+
+  .plat-signature__visuel {
+    grid-row: span 2;
+    width: var(--visuel-panier);
+    height: var(--visuel-panier);
+    object-fit: cover;
+    border-radius: var(--radius-petit);
+  }
+
+  .plat-signature__infos {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .plat-signature__infos p {
+    margin: 0;
+  }
+
+  .plat-signature__nom {
+    font-family: var(--font-title);
+    font-size: 1.375rem;
+  }
+
+  .plat-signature__description {
+    font-size: var(--font-size-petit);
+    color: var(--color-accent);
+  }
+
+  .plat-signature__prix {
+    font-size: var(--font-size-prix);
+    font-weight: 700;
+  }
+
+  @media (min-width: 64rem) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--space-24);
+
+    .plat-signature__visuel {
+      grid-row: auto;
+      width: var(--visuel-panier-desktop);
+      height: var(--visuel-panier-desktop);
+    }
+  }
+}
+
+#primary .plat-signature__lien {
+  font-weight: 500;
+  color: var(--color-text-main);
+  text-decoration: underline;
+
+  &::after {
+    content: " →";
+    color: var(--color-accent);
+  }
+}
+
+.membre__autres {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+
+  .membre__autres-titre {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+
+  @media (min-width: 64rem) {
+    padding-top: var(--space-16);
+
+    .membre__autres-titre {
+      font-size: 2rem;
+    }
+  }
 }

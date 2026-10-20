@@ -7,6 +7,7 @@
  * IT-4 : champs personnalisés Origine et Allergènes créés avec SCF (US-4.1), étiquette du plat avant le prix (US-4.3, US-4.4).
  * IT-5 : page Panier « Vos plats » + « L'addition » (US-5.3), choix du mode de retrait (US-5.2, US-5.4).
  * IT-6 : page Commande « Bon de commande » + « L'addition », instructions de retrait modifiables (US-6.1, US-6.2).
+ * IT-11 : page L'équipe et fiche Membre (type de publication « membre » et champs créés avec SCF, US-11.1 à US-11.5).
  *
  * @package chalet-child
  */
@@ -93,6 +94,9 @@ function chalet_titre_page() {
 	if ( is_order_received_page() ) {
 		return 'Merci !';
 	}
+	if ( is_post_type_archive( 'membre' ) || is_singular( 'membre' ) ) {
+		return 'L’équipe'; // IT-11.
+	}
 	if ( is_singular() ) {
 		return get_the_title();
 	}
@@ -103,7 +107,7 @@ function chalet_liens_restaurant() {
 	return array(
 		'Accueil'          => 'https://lechaletlimoges.com/',
 		'La Carte'         => wc_get_page_permalink( 'shop' ),
-		'Notre histoire'   => 'https://lechaletlimoges.com/about',
+		'L’équipe'         => get_post_type_archive_link( 'membre' ), // IT-11 : remplace « Notre histoire ».
 		'Contact'          => 'https://lechaletlimoges.com/contact',
 		'Mentions légales' => 'https://lechaletlimoges.com/mentions-l%C3%A9gales',
 	);
@@ -116,7 +120,7 @@ function chalet_compteur_panier() {
 
 function chalet_entete() {
 	$img   = get_stylesheet_directory_uri() . '/assets/img/';
-	$balise = is_product() ? 'p' : 'h1'; // Sur la fiche, le h1 est le nom du produit.
+	$balise = ( is_product() || is_singular( 'membre' ) ) ? 'p' : 'h1'; // Sur une fiche, le h1 est le nom du produit ou du membre.
 	?>
 	<div class="entete">
 		<div class="entete__barre">
@@ -171,6 +175,7 @@ function chalet_menu_par_defaut() {
 			$liens[ $categorie->name ] = get_term_link( $categorie );
 		}
 	}
+	$liens['L’équipe']   = get_post_type_archive_link( 'membre' ); // IT-11.
 	$liens['Mon compte'] = wc_get_page_permalink( 'myaccount' ); // IT-7.
 	$liens['Panier']     = wc_get_cart_url();
 
@@ -932,6 +937,48 @@ function chalet_erreur_code_promo( $erreur, $code_erreur, $coupon ) {
 	return $erreur;
 }
 add_filter( 'woocommerce_coupon_error', 'chalet_erreur_code_promo', 10, 3 );
+
+/* --------------------------------------------------------------------------
+ * 8 quinquies. IT-11 : L'équipe (type de publication « membre » créé avec SCF).
+ *    Champs SCF du groupe « Fiche membre » : poste, depuis, citation, plat_signature.
+ *    Templates : archive-membre.php (liste) et single-membre.php (fiche).
+ * ------------------------------------------------------------------------ */
+
+// Les membres dans leur ordre d'arrivée dans le back-office (le chef d'abord).
+function chalet_ordre_membres( $requete ) {
+	if ( ! is_admin() && $requete->is_main_query() && $requete->is_post_type_archive( 'membre' ) ) {
+		$requete->set( 'orderby', 'date' );
+		$requete->set( 'order', 'ASC' );
+		$requete->set( 'posts_per_page', -1 );
+	}
+}
+add_action( 'pre_get_posts', 'chalet_ordre_membres' );
+
+// Carte d'un membre (composant Figma « Carte membre ») : liste et « Le reste de la brigade ».
+function chalet_carte_membre( $membre_id, $titre = 'h2' ) {
+	$nom      = get_the_title( $membre_id );
+	$poste    = get_field( 'poste', $membre_id );
+	$citation = get_field( 'citation', $membre_id );
+	?>
+	<li class="carte-membre">
+		<div class="carte-membre__photo">
+			<?php echo get_the_post_thumbnail( $membre_id, 'large', array( 'alt' => '' ) ); // Décorative ici : le nom suit. ?>
+		</div>
+		<div class="carte-membre__corps">
+			<?php if ( $poste ) : ?>
+				<p class="carte-membre__poste"><?php echo esc_html( $poste ); ?></p>
+			<?php endif; ?>
+			<<?php echo tag_escape( $titre ); ?> class="carte-membre__nom"><?php echo esc_html( $nom ); ?></<?php echo tag_escape( $titre ); ?>>
+			<?php if ( $citation ) : ?>
+				<p class="carte-membre__citation">« <?php echo esc_html( $citation ); ?> »</p>
+			<?php endif; ?>
+			<a class="carte-membre__bouton" href="<?php echo esc_url( get_permalink( $membre_id ) ); ?>">
+				Voir le profil<span class="screen-reader-text"> de <?php echo esc_html( $nom ); ?></span>
+			</a>
+		</div>
+	</li>
+	<?php
+}
 
 /* --------------------------------------------------------------------------
  * 9. Pied de page.
