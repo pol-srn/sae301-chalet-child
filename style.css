@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.13.0
+Version:      1.14.4
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -2187,6 +2187,7 @@ ul.products li.product .added_to_cart {
 }
 
 .compte__bouton,
+.avis__bouton,
 .ardoise__bouton {
   display: inline-flex;
   align-items: center;
@@ -3189,10 +3190,6 @@ ul.products li.product .added_to_cart {
   color: var(--color-text-inverse);
 }
 
-#colophon .pied li:first-child a.pied__lien {
-  color: var(--color-lin);
-}
-
 /* ==========================================================================
    IT-11 : L'équipe (archive-membre.php) et fiche Membre (single-membre.php)
    ========================================================================== */
@@ -3868,4 +3865,331 @@ ul.products li.product .added_to_cart {
       display: block;
     }
   }
+}
+
+/* ==========================================================================
+   IT-14 : avis clients (onglet « Avis » de la fiche, single-product-reviews.php)
+   ========================================================================== */
+
+/* Onglets côte à côte (Storefront les empile en colonne). */
+.single-product div.product .woocommerce-tabs ul.tabs {
+  display: flex;
+  gap: var(--space-32);
+}
+
+.single-product div.product .woocommerce-tabs ul.tabs li a {
+  color: var(--color-accent);
+}
+
+.single-product div.product .woocommerce-tabs ul.tabs li.active a {
+  color: var(--color-text-main);
+}
+
+/* Les onglets prennent toute la largeur ; seul le texte de la description reste à 47,5rem. */
+.single-product div.product .woocommerce-tabs .woocommerce-Tabs-panel--reviews,
+.single-product div.product .woocommerce-tabs .woocommerce-Tabs-panel--description {
+  max-width: none;
+}
+
+.single-product div.product .woocommerce-Tabs-panel--description > :not(.ardoise) {
+  max-width: 47.5rem;
+}
+
+/* Étoiles (note moyenne et avis). */
+.etoiles {
+  display: inline-flex;
+  gap: var(--space-4);
+  vertical-align: middle;
+
+  .etoiles__etoile {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+  }
+
+  .etoiles__etoile--pleine {
+    fill: currentColor;
+  }
+}
+
+/* Bande caramel à la largeur de l’onglet (comme l’ardoise de l’onglet Description). */
+.avis {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  padding: var(--space-48) var(--space-16);
+  gap: var(--space-32);
+  color: var(--color-text-inverse);
+  background-color: var(--color-bg-menu);
+
+  .avis__liste-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 75rem;
+    gap: var(--space-16);
+    text-align: center;
+  }
+
+  .ornement {
+    color: var(--color-creme);
+  }
+
+  .avis__titre {
+    margin: 0;
+    color: var(--color-text-inverse);
+    font-size: 2rem;
+  }
+
+  .avis__synthese {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    gap: var(--space-8) var(--space-12);
+  }
+
+  .avis__synthese strong {
+    font-size: var(--font-size-prix);
+  }
+
+  /* Ligne en zigzag du site officiel. */
+  .avis__zigzag {
+    width: 7.5rem;
+    height: 0.375rem;
+    background: linear-gradient(135deg, transparent 45%, var(--color-creme) 45% 55%, transparent 55%) 0 0 / 0.5rem 100%,
+      linear-gradient(45deg, transparent 45%, var(--color-creme) 45% 55%, transparent 55%) 0.25rem 0 / 0.5rem 100%;
+    opacity: 0.8;
+  }
+
+  .avis__vide {
+    margin: 0;
+  }
+
+  .avis__liste {
+    display: grid;
+    width: 100%;
+    margin: var(--space-16) 0 0;
+    gap: var(--space-24);
+    list-style: none;
+    text-align: left;
+  }
+
+  /* Formulaire dans un cadre blanc épais. */
+  .avis__formulaire {
+    width: 100%;
+    max-width: 40rem;
+    padding: var(--space-24);
+    color: var(--color-text-main);
+    text-align: center;
+    background-color: var(--color-bg-surface);
+    outline: 6px solid var(--color-blanc);
+  }
+
+  .avis__form-titre {
+    margin: 0 0 var(--space-16);
+    font-size: 1.75rem;
+  }
+
+  .comment-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-16);
+  }
+
+  .comment-form > p,
+  .comment-form-rating {
+    width: 100%;
+    margin: 0;
+  }
+
+  .comment-form label {
+    display: block;
+    margin-bottom: var(--space-8);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  /* Champs pointillés, comme le Bon de commande. */
+  .comment-form input[type="text"],
+  .comment-form input[type="email"],
+  .comment-form textarea {
+    width: 100%;
+    padding: var(--space-8) 0;
+    font-family: var(--font-main);
+    font-size: var(--font-size-saisie);
+    color: var(--color-text-main);
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--color-accent);
+    box-shadow: none;
+  }
+
+  .comment-form textarea:focus,
+  .comment-form input:focus {
+    border-bottom-style: solid;
+    outline: 2px solid var(--color-text-main);
+    outline-offset: 2px;
+  }
+
+  /* Étoiles cliquables générées par WooCommerce à partir de la liste #rating. */
+  p.stars {
+    margin: 0;
+    font-size: 1.75rem;
+  }
+
+  p.stars a {
+    color: var(--color-accent);
+  }
+
+  .avis__mention {
+    margin: 0;
+    font-size: var(--font-size-petit);
+    font-style: italic;
+    color: var(--color-accent);
+  }
+
+  .form-submit {
+    margin: 0;
+  }
+
+  @media (min-width: 64rem) {
+    padding: var(--space-64) var(--space-48);
+
+    .avis__titre {
+      font-size: 3rem;
+    }
+
+    .avis__liste {
+      grid-template-columns: repeat(auto-fit, minmax(17.5rem, 20rem));
+      justify-content: center;
+      gap: var(--space-32);
+    }
+
+    .avis__formulaire {
+      padding: var(--space-32);
+    }
+  }
+}
+
+/* Bouton « Publier mon avis » : Storefront style tous les input[type=submit]. */
+#primary .avis input.avis__bouton {
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+/* Un avis : carte blanche façon photo scotchée du site officiel. */
+.carte-avis {
+  position: relative;
+  margin: 0;
+  color: var(--color-text-main);
+  background-color: var(--color-blanc);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.12);
+
+  /* Morceau de scotch. */
+  &::before {
+    content: "";
+    position: absolute;
+    top: -0.5625rem;
+    left: 50%;
+    width: 4rem;
+    height: 1.125rem;
+    background-color: rgb(222 209 195 / 0.8);
+    transform: translateX(-50%) rotate(-4deg);
+  }
+
+  .carte-avis__corps {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: var(--space-24);
+    gap: var(--space-12);
+  }
+
+  .carte-avis__citation {
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+    font-style: normal;
+    line-height: 1.3;
+
+    &::before {
+      content: "“";
+      display: block;
+      font-size: 3rem;
+      line-height: 0.6;
+      color: var(--color-caramel);
+    }
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .etoiles {
+    color: var(--color-or);
+  }
+
+  .carte-avis__signature {
+    display: flex;
+    flex-direction: column;
+    font-size: var(--font-size-petit);
+  }
+
+  .carte-avis__signature span {
+    color: var(--color-accent);
+  }
+
+  .carte-avis__attente {
+    margin: 0;
+    font-size: var(--font-size-petit);
+    font-style: italic;
+    color: var(--color-alerte);
+  }
+
+  /* Légère inclinaison en desktop, comme les photos du site officiel. */
+  @media (min-width: 64rem) {
+    &:nth-child(3n + 1) {
+      transform: rotate(-1.5deg);
+    }
+
+    &:nth-child(3n + 2) {
+      transform: rotate(1deg);
+    }
+
+    &:nth-child(3n) {
+      transform: rotate(-0.5deg);
+    }
+  }
+}
+
+/* Notes natives de WooCommerce (cartes de La Carte, fiche produit) : caramel foncé au lieu du violet de Storefront. */
+#primary .star-rating span::before {
+  color: var(--color-accent);
+}
+
+#primary .star-rating::before {
+  color: var(--color-border);
+  opacity: 1;
+}
+
+#primary .woocommerce-product-rating .woocommerce-review-link {
+  font-size: var(--font-size-petit);
+  color: var(--color-accent);
+}
+
+/* Storefront masque le titre du formulaire d'avis (#reviews .comment-reply-title) : on l'affiche. */
+#reviews .avis__form-titre {
+  display: block;
 }

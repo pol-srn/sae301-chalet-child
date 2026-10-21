@@ -10,6 +10,7 @@
  * IT-11 : page L'équipe et fiche Membre (type de publication « membre » et champs créés avec SCF, US-11.1 à US-11.5).
  * IT-12 : taxonomie « envie » (SCF) indépendante des catégories, page d'une envie (US-12.1 à US-12.3).
  * IT-13 : ventes croisées en ardoises « Composez votre repas » (fiche) et « Vous oubliez quelque chose ? » (panier) (US-13.1 à US-13.3).
+ * IT-14 : avis clients dans un onglet « Avis » de la fiche, réservés aux acheteurs certifiés et modérés (US-14.1, US-14.2).
  *
  * @package chalet-child
  */
@@ -105,13 +106,11 @@ function chalet_titre_page() {
 	return get_bloginfo( 'name' );
 }
 
+// Liens du pied de page : uniquement des pages de ce site (aucun lien vers le site vitrine).
 function chalet_liens_restaurant() {
 	return array(
-		'Accueil'          => 'https://lechaletlimoges.com/',
-		'La Carte'         => wc_get_page_permalink( 'shop' ),
-		'L’équipe'         => get_post_type_archive_link( 'membre' ), // IT-11 : remplace « Notre histoire ».
-		'Contact'          => 'https://lechaletlimoges.com/contact',
-		'Mentions légales' => 'https://lechaletlimoges.com/mentions-l%C3%A9gales',
+		'La Carte' => wc_get_page_permalink( 'shop' ),
+		'L’équipe' => get_post_type_archive_link( 'membre' ), // IT-11.
 	);
 }
 
@@ -168,7 +167,6 @@ function chalet_menu_par_defaut() {
 	) : array();
 
 	$liens = array(
-		array( 'Accueil', 'https://lechaletlimoges.com/', false ),
 		array( 'La Carte', wc_get_page_permalink( 'shop' ), is_shop() || is_product_category() || is_product() ),
 	);
 	if ( $envies && ! is_wp_error( $envies ) ) {
@@ -322,10 +320,25 @@ function chalet_separateur_ariane( $reglages ) {
 add_filter( 'woocommerce_breadcrumb_defaults', 'chalet_separateur_ariane', 20 );
 
 function chalet_onglets_produit( $onglets ) {
-	unset( $onglets['reviews'], $onglets['additional_information'] );
+	unset( $onglets['additional_information'] );
+	// IT-14 : l'ardoise « Composez votre repas » (IT-13) fait partie de l'onglet Description.
+	if ( isset( $onglets['description'] ) ) {
+		$onglets['description']['callback'] = 'chalet_onglet_description';
+	}
+	// IT-14 : onglet « Avis (n) » à côté de « Description » (contenu : woocommerce/single-product-reviews.php).
+	if ( isset( $onglets['reviews'] ) ) {
+		global $product;
+		$onglets['reviews']['title'] = sprintf( 'Avis (%d)', $product ? $product->get_review_count() : 0 );
+	}
 	return $onglets;
 }
 add_filter( 'woocommerce_product_tabs', 'chalet_onglets_produit', 98 );
+
+// Contenu de l'onglet Description : la description de WooCommerce, puis l'ardoise du repas.
+function chalet_onglet_description() {
+	woocommerce_product_description_tab();
+	chalet_ardoise_repas();
+}
 add_filter( 'woocommerce_product_description_heading', '__return_empty_string' );
 
 /* --------------------------------------------------------------------------
@@ -1215,7 +1228,7 @@ function chalet_ardoise_repas() {
 	</section>
 	<?php
 }
-add_action( 'woocommerce_after_single_product_summary', 'chalet_ardoise_repas', 15 );
+// IT-14 : affichée dans l'onglet Description (voir chalet_onglet_description()).
 
 // Panier : « Vous oubliez quelque chose ? » (ventes croisées des plats du panier, le moment manquant d'abord).
 function chalet_ardoise_panier() {
@@ -1272,6 +1285,57 @@ function chalet_ardoise_panier() {
 	<?php
 }
 add_action( 'woocommerce_after_cart_table', 'chalet_ardoise_panier' );
+
+/* --------------------------------------------------------------------------
+ * 8 octies. IT-14 : avis clients (onglet « Avis » de la fiche produit).
+ *    Réglages WooCommerce : avis réservés aux acheteurs certifiés, note obligatoire ;
+ *    Réglages › Commentaires : approbation manuelle (Produits › Avis).
+ * ------------------------------------------------------------------------ */
+
+// 5 étoiles (pleines jusqu'à la note arrondie), lues « Noté x sur 5 » par les lecteurs d'écran.
+function chalet_etoiles( $note ) {
+	$pleines = (int) round( $note );
+	echo '<span class="etoiles" role="img" aria-label="' . esc_attr( sprintf( 'Noté %s sur 5', number_format_i18n( $note, 1 ) ) ) . '">';
+	for ( $i = 1; $i <= 5; $i++ ) {
+		printf(
+			'<svg class="etoiles__etoile%s" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>',
+			$i <= $pleines ? ' etoiles__etoile--pleine' : ''
+		);
+	}
+	echo '</span>';
+}
+
+// Ornement « ✳ ✳ ✳ » du site officiel, au-dessus des titres sur fond caramel.
+function chalet_ornement_etoiles() {
+	$branches = '';
+	foreach ( array( 12, 36, 60 ) as $x ) {
+		$branches .= sprintf( '<path d="M%1$d 2v16M%2$d 10h16M%3$s 4.5l11 11M%4$s 4.5l-11 11"/>', $x, $x - 8, $x - 5.5, $x + 5.5 );
+	}
+	echo '<svg class="ornement" width="72" height="20" viewBox="0 0 72 20" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">' . $branches . '</svg>'; // phpcs:ignore WordPress.Security.EscapeOutput
+}
+
+// Carte d'un avis (rappel de wp_list_comments) : citation, étoiles, signature « Acheteur certifié · date ».
+function chalet_carte_avis( $comment, $args, $depth ) {
+	$note     = (int) get_comment_meta( $comment->comment_ID, 'rating', true );
+	$certifie = wc_review_is_from_verified_owner( $comment->comment_ID );
+	?>
+	<li <?php comment_class( 'carte-avis' ); ?> id="li-comment-<?php comment_ID(); ?>">
+		<figure id="comment-<?php comment_ID(); ?>" class="carte-avis__corps">
+			<blockquote class="carte-avis__citation"><?php comment_text(); ?></blockquote>
+			<?php if ( $note && wc_review_ratings_enabled() ) : ?>
+				<?php chalet_etoiles( $note ); ?>
+			<?php endif; ?>
+			<figcaption class="carte-avis__signature">
+				<strong>— <?php comment_author(); ?></strong>
+				<span><?php echo $certifie ? 'Acheteur certifié · ' : ''; ?><?php echo esc_html( get_comment_date( 'd/m/Y' ) ); ?></span>
+			</figcaption>
+			<?php if ( '0' === $comment->comment_approved ) : ?>
+				<p class="carte-avis__attente">Merci ! Votre avis sera visible après validation par le restaurant.</p>
+			<?php endif; ?>
+		</figure>
+	<?php
+	// wp_list_comments() ferme le <li>.
+}
 
 /* --------------------------------------------------------------------------
  * 9. Pied de page.
