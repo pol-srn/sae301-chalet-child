@@ -9,6 +9,7 @@
  * IT-6 : page Commande « Bon de commande » + « L'addition », instructions de retrait modifiables (US-6.1, US-6.2).
  * IT-11 : page L'équipe et fiche Membre (type de publication « membre » et champs créés avec SCF, US-11.1 à US-11.5).
  * IT-12 : taxonomie « envie » (SCF) indépendante des catégories, page d'une envie (US-12.1 à US-12.3).
+ * IT-13 : ventes croisées en ardoises « Composez votre repas » (fiche) et « Vous oubliez quelque chose ? » (panier) (US-13.1 à US-13.3).
  *
  * @package chalet-child
  */
@@ -1102,6 +1103,175 @@ function chalet_cartes_envies( $actif = 0 ) {
 	</nav>
 	<?php
 }
+
+/* --------------------------------------------------------------------------
+ * 8 septies. IT-13 : ventes croisées (champ « Ventes croisées » de chaque produit).
+ *    Fiche produit : ardoise Entrée · Plat · Dessert. Panier : ardoise de suggestions.
+ *    Tous les plats ont des options : chaque suggestion renvoie à sa fiche.
+ * ------------------------------------------------------------------------ */
+
+// Les moments du repas, dans l'ordre de l'ardoise.
+function chalet_moments() {
+	return array(
+		'entree'  => 'Entrée',
+		'plat'    => 'Plat',
+		'dessert' => 'Dessert',
+	);
+}
+
+// Moment du repas d'un produit, d'après le slug de sa catégorie (les-entrees, les-plats, les-desserts).
+function chalet_moment_plat( $produit_id ) {
+	foreach ( wp_get_post_terms( $produit_id, 'product_cat', array( 'fields' => 'slugs' ) ) as $slug ) {
+		foreach ( array_keys( chalet_moments() ) as $moment ) {
+			if ( false !== strpos( $slug, $moment ) ) {
+				return $moment;
+			}
+		}
+	}
+	return '';
+}
+
+// Produits suggérables : visibles et en stock (un plat épuisé n'est pas proposé).
+function chalet_suggestions( $ids ) {
+	$produits = array();
+	foreach ( $ids as $id ) {
+		$produit = wc_get_product( $id );
+		if ( $produit && $produit->is_visible() && $produit->is_in_stock() ) {
+			$produits[] = $produit;
+		}
+	}
+	return $produits;
+}
+
+// Prix le plus bas d'un plat (les options peuvent le faire varier).
+function chalet_prix_depart( $produit ) {
+	return (float) ( $produit->is_type( 'variable' ) ? $produit->get_variation_price( 'min', true ) : wc_get_price_to_display( $produit ) );
+}
+
+// Lien « Choisir les options » vers la fiche d'un plat.
+function chalet_bouton_suggestion( $produit ) {
+	printf(
+		'<a class="ardoise__bouton" href="%s">Choisir les options<span class="screen-reader-text"> : %s</span></a>',
+		esc_url( $produit->get_permalink() ),
+		esc_html( $produit->get_name() )
+	);
+}
+
+// Fiche produit : « Composez votre repas » (plat consulté + ventes croisées des autres moments).
+function chalet_ardoise_repas() {
+	global $product;
+	if ( ! $product ) {
+		return;
+	}
+	$moment_actuel = chalet_moment_plat( $product->get_id() );
+	if ( ! $moment_actuel ) {
+		return;
+	}
+	$noms                    = chalet_moments();
+	$cases                   = array_fill_keys( array_keys( $noms ), null );
+	$cases[ $moment_actuel ] = $product;
+	foreach ( chalet_suggestions( $product->get_cross_sell_ids() ) as $suggestion ) {
+		$moment = chalet_moment_plat( $suggestion->get_id() );
+		if ( $moment && null === $cases[ $moment ] ) {
+			$cases[ $moment ] = $suggestion;
+		}
+	}
+	$cases = array_filter( $cases );
+	if ( count( $cases ) < 2 ) {
+		return; // Aucune suggestion : pas d'ardoise.
+	}
+	$total = array_sum( array_map( 'chalet_prix_depart', $cases ) );
+	?>
+	<section class="ardoise ardoise--repas" aria-labelledby="ardoise-titre">
+		<p class="ardoise__surtitre">Pour un repas complet</p>
+		<h2 class="ardoise__titre" id="ardoise-titre">Composez votre repas</h2>
+		<p class="ardoise__texte">Une entrée, un plat, un dessert : le chef vous suggère ses accords.</p>
+		<ul class="ardoise__cases">
+			<?php foreach ( $cases as $moment => $plat ) : ?>
+				<?php $choix = $plat->get_id() === $product->get_id(); ?>
+				<li class="ardoise__case<?php echo $choix ? ' ardoise__case--choix' : ''; ?>">
+					<p class="ardoise__moment">
+						<?php echo esc_html( $noms[ $moment ] ); ?>
+						<?php if ( $choix ) : ?>
+							<span class="ardoise__choix">Votre choix</span>
+						<?php endif; ?>
+					</p>
+					<?php echo $plat->get_image( 'woocommerce_thumbnail', array( 'class' => 'ardoise__visuel', 'alt' => '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+					<h3 class="ardoise__nom"><?php echo esc_html( $plat->get_name() ); ?></h3>
+					<p class="ardoise__prix"><?php echo wp_kses_post( wc_price( chalet_prix_depart( $plat ) ) ); ?></p>
+					<?php if ( $choix ) : ?>
+						<p class="ardoise__rappel">Choisissez vos options ci-dessus</p>
+					<?php else : ?>
+						<?php chalet_bouton_suggestion( $plat ); ?>
+					<?php endif; ?>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+		<p class="ardoise__total">
+			<span><?php echo 3 === count( $cases ) ? 'Votre repas complet, à partir de' : 'Votre repas, à partir de'; ?></span>
+			<span class="ardoise__points" aria-hidden="true"></span>
+			<strong><?php echo wp_kses_post( wc_price( $total ) ); ?></strong>
+		</p>
+	</section>
+	<?php
+}
+add_action( 'woocommerce_after_single_product_summary', 'chalet_ardoise_repas', 15 );
+
+// Panier : « Vous oubliez quelque chose ? » (ventes croisées des plats du panier, le moment manquant d'abord).
+function chalet_ardoise_panier() {
+	$suggestions = chalet_suggestions( WC()->cart->get_cross_sells() ); // Sans les plats déjà dans le panier.
+	if ( ! $suggestions ) {
+		return;
+	}
+	$presents = array();
+	foreach ( WC()->cart->get_cart() as $article ) {
+		$presents[] = chalet_moment_plat( $article['product_id'] );
+	}
+	$titres  = array(
+		'entree'  => array( 'Pour commencer ?', 'Il manque une entrée à votre repas : voici les accords du chef.' ),
+		'dessert' => array( 'Une petite douceur pour finir ?', 'Il manque un dessert à votre repas : voici les accords du chef.' ),
+		'plat'    => array( 'Et pour le plat ?', 'Il manque un plat à votre repas : voici les accords du chef.' ),
+	);
+	$manque  = '';
+	foreach ( array_keys( $titres ) as $moment ) {
+		if ( ! in_array( $moment, $presents, true ) ) {
+			$manque = $moment;
+			break;
+		}
+	}
+	$texte = $manque ? $titres[ $manque ] : array( 'Les accords du chef', 'Pour compléter votre commande.' );
+	// Le moment manquant en premier, puis les autres suggestions ; 3 au maximum.
+	$moments = array();
+	foreach ( $suggestions as $plat ) {
+		$moments[ $plat->get_id() ] = chalet_moment_plat( $plat->get_id() ); // Lu une seule fois par plat.
+	}
+	usort(
+		$suggestions,
+		function ( $a, $b ) use ( $manque, $moments ) {
+			return ( $moments[ $b->get_id() ] === $manque ) <=> ( $moments[ $a->get_id() ] === $manque );
+		}
+	);
+	$suggestions = array_slice( $suggestions, 0, 3 );
+	?>
+	<section class="ardoise ardoise--panier" aria-labelledby="ardoise-panier-titre">
+		<p class="ardoise__surtitre">Vous oubliez quelque chose ?</p>
+		<h2 class="ardoise__titre" id="ardoise-panier-titre"><?php echo esc_html( $texte[0] ); ?></h2>
+		<p class="ardoise__texte"><?php echo esc_html( $texte[1] ); ?></p>
+		<ul class="ardoise__lignes">
+			<?php foreach ( $suggestions as $plat ) : ?>
+				<li class="ardoise__ligne">
+					<?php echo $plat->get_image( 'woocommerce_gallery_thumbnail', array( 'class' => 'ardoise__miniature', 'alt' => '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+					<span class="ardoise__nom-ligne"><?php echo esc_html( $plat->get_name() ); ?></span>
+					<span class="ardoise__points" aria-hidden="true"></span>
+					<span class="ardoise__prix-ligne"><?php echo wp_kses_post( wc_price( chalet_prix_depart( $plat ) ) ); ?></span>
+					<?php chalet_bouton_suggestion( $plat ); ?>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+	</section>
+	<?php
+}
+add_action( 'woocommerce_after_cart_table', 'chalet_ardoise_panier' );
 
 /* --------------------------------------------------------------------------
  * 9. Pied de page.
