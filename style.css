@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.11.0
+Version:      1.12.0
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -122,6 +122,8 @@ a {
   flex-direction: column;
   align-items: center;
   min-height: 20rem;
+  --logo-largeur: 12rem;
+
   padding-bottom: 3rem;
   color: var(--color-creme);
 
@@ -131,7 +133,7 @@ a {
     align-items: center;
     width: 100%;
     padding: 0 1rem;
-    border-bottom: 1px solid rgb(251 247 242 / 0.2);
+    /* Pas de bordure : la ligne sous la barre est celle qui part du logo (maquette). */
   }
 
   .entete__horaires {
@@ -190,6 +192,11 @@ a {
     font-size: 0;
   }
 
+  /* Réservation : texte seul, sans lien (pas de réservation en ligne). */
+  .entete__lien--inactif {
+    cursor: default;
+  }
+
   .entete__lien--reservation::before {
     width: 2.375rem;
     background-image: url("assets/img/reservation-cloche.svg");
@@ -199,52 +206,34 @@ a {
     background-image: url("assets/img/panier-sac.svg");
   }
 
-  .entete__lien--menu {
-    list-style: none;
-  }
-
-  .entete__lien--menu::-webkit-details-marker {
-    display: none;
+  /* Bouton burger : Storefront donne un fond gris et des marges à tous les boutons. */
+  button.entete__lien--menu {
+    padding: 0;
+    border: none;
+    background: none;
   }
 
   .entete__lien--menu::before {
     background-image: url("assets/img/menu-burger.svg");
   }
 
+  .entete__lien--menu:focus-visible {
+    outline: 2px solid var(--color-creme);
+    outline-offset: 2px;
+  }
+
   .entete__compteur {
     font-size: 0.875rem;
   }
 
-  .entete__menu {
-    position: relative;
-  }
-
-  .entete__sous-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    z-index: 10;
-    min-width: 13rem;
-    margin: 0;
-    padding: 1rem 1.5rem;
-    background-color: var(--color-bg-footer);
-    list-style: none;
-  }
-
-  .entete__sous-menu a {
-    display: block;
-    padding: 0.5rem 0;
-    color: var(--color-creme);
-    text-decoration: none;
-    text-transform: uppercase;
-  }
-
+  /* Le logo est centré sur le bas de la barre : ses deux traits forment la ligne de la barre. */
   .entete__logo {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: var(--space-8);
     width: 100%;
-    margin-top: 2rem;
+    margin-top: calc(var(--logo-largeur) * 42 / 286 / -2); /* Moitié de la hauteur du logo (286 × 42). */
+    pointer-events: none; /* Les traits chevauchent la barre : seul le logo reste cliquable. */
   }
 
   .entete__logo::before,
@@ -255,8 +244,9 @@ a {
   }
 
   .entete__logo img {
-    width: 12rem;
+    width: var(--logo-largeur);
     height: auto;
+    pointer-events: auto;
   }
 
   .entete__titre {
@@ -301,12 +291,10 @@ a {
       font-size: 1rem;
     }
 
-    .entete__logo {
-      margin-top: 3rem;
-    }
+    --logo-largeur: 17.875rem;
 
-    .entete__logo img {
-      width: 17.875rem;
+    .entete__logo {
+      gap: 3.6875rem;
     }
 
     .entete__titre {
@@ -315,6 +303,192 @@ a {
   }
 }
 
+
+/* Menu plein écran (maquette « Menu ouvert ») : <dialog> ouvert par le bouton burger. */
+.menu-ecran {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Le menu tient toujours dans l'écran : pas de défilement. */
+  border: none;
+  background-color: var(--color-bg-footer);
+  color: var(--color-creme);
+
+  &[open] {
+    display: grid;
+  }
+
+  .menu-ecran__photo {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--space-64) var(--space-24);
+    background: linear-gradient(rgb(0 0 0 / 0.45), rgb(0 0 0 / 0.45)), url("assets/img/hero-la-carte.webp") center / cover no-repeat;
+  }
+
+  .menu-ecran__fermer {
+    position: absolute;
+    top: var(--space-24);
+    left: var(--space-24);
+    display: flex;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--color-creme);
+    cursor: pointer;
+  }
+
+  /* Storefront met un contour violet au focus : on garde seulement le contour clavier (focus-visible). */
+  .menu-ecran__fermer:focus {
+    outline: none;
+  }
+
+  .menu-ecran__fermer svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .menu-ecran__liens {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    gap: clamp(var(--space-8), 2.5vh, var(--space-24));
+    list-style: none;
+    text-align: center;
+  }
+
+  /* Taille calée sur la hauteur de l'écran : les 6 liens tiennent sans défiler. */
+  .menu-ecran__liens a,
+  .menu-ecran__inactif {
+    color: var(--color-creme);
+    font-family: var(--font-title);
+    font-size: clamp(1.5rem, 6vh, 2rem);
+    font-weight: 500;
+    line-height: 1.2;
+    text-decoration: none;
+  }
+
+  .menu-ecran__liens a:hover {
+    color: var(--color-or);
+  }
+
+  .menu-ecran__liens a:focus-visible,
+  .menu-ecran__fermer:focus-visible,
+  .menu-ecran__infos a:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+  }
+
+  /* Panneau caramel : visible à partir de la tablette paysage. */
+  .menu-ecran__infos {
+    display: none;
+  }
+
+  @media (min-width: 64rem) {
+    grid-template-columns: 3fr 2fr;
+
+    .menu-ecran__fermer {
+      top: 2.5rem;
+      left: 2.5rem;
+      width: 2rem;
+      height: 2rem;
+    }
+
+    .menu-ecran__liens {
+      gap: clamp(var(--space-8), 3vh, var(--space-32));
+    }
+
+    .menu-ecran__liens a,
+    .menu-ecran__inactif {
+      font-size: clamp(2rem, 7vh, 3.5rem);
+    }
+
+    .menu-ecran__infos {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: var(--space-48);
+      gap: var(--space-8);
+      background-color: var(--color-bg-menu);
+      color: var(--color-text-inverse);
+      text-align: center;
+    }
+
+    /* Rond du taureau découpé dans logo-taureau.png (238 × 218, rond de 106 px en haut au centre). */
+    .menu-ecran__taureau {
+      width: 6.875rem;
+      height: 6.875rem;
+      background: url("assets/img/logo-taureau.png") -4.28rem -0.13rem / 15.44rem auto no-repeat;
+      border-radius: 50%;
+    }
+
+    .menu-ecran__logo {
+      width: 15.875rem;
+      height: auto;
+      margin: var(--space-8) 0 var(--space-24);
+    }
+
+    .menu-ecran__texte {
+      margin: 0;
+    }
+
+    .menu-ecran__infos a {
+      color: var(--color-text-inverse);
+      text-decoration: none;
+    }
+
+    .menu-ecran__infos a:hover {
+      text-decoration: underline;
+    }
+
+    .menu-ecran__label {
+      margin: var(--space-16) 0 0;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: var(--letter-spacing-titre);
+      text-transform: uppercase;
+    }
+
+    .menu-ecran__reseaux {
+      display: flex;
+      align-items: center;
+      margin: var(--space-48) 0 0;
+      gap: var(--space-12);
+      list-style: none;
+    }
+
+    .menu-ecran__reseaux li + li::before {
+      content: "";
+      display: inline-block;
+      width: 2.5rem;
+      margin-right: var(--space-12);
+      vertical-align: middle;
+      border-top: 1px solid currentColor;
+    }
+
+    .menu-ecran__reseaux a {
+      display: inline-flex;
+      vertical-align: middle;
+    }
+  }
+}
+
+.menu-ecran::backdrop {
+  background-color: rgb(0 0 0 / 0.6);
+}
+
+/* La page derrière le menu ne défile plus. */
+body:has(.menu-ecran[open]) {
+  overflow: hidden;
+}
 
 .home .site-main,
 .post-type-archive-product .site-main {
@@ -3138,8 +3312,9 @@ ul.products li.product .added_to_cart {
   }
 }
 
-/* Bouton secondaire (cadre), poussé en bas de la carte. */
-#primary .carte-membre__bouton {
+/* Bouton secondaire (cadre) : carte membre (IT-11) et « Voir toute la carte » (IT-12). */
+#primary .carte-membre__bouton,
+#primary .envie-plats__retour {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3359,5 +3534,133 @@ ul.products li.product .added_to_cart {
     .membre__autres-titre {
       font-size: 2rem;
     }
+  }
+}
+
+/* ==========================================================================
+   IT-12 : page d'une envie (taxonomy-envie.php)
+   ========================================================================== */
+.tax-envie .site-main {
+  margin-bottom: 0;
+}
+
+.envie-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-inline: calc(50% - 50vw);
+  padding: var(--space-32) var(--space-16);
+  gap: var(--space-16);
+  background-color: var(--color-bg-main);
+  text-align: center;
+
+  .envie-intro__surtitre {
+    margin: 0;
+    font-family: var(--font-main);
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .envie-intro__texte {
+    max-width: 40rem;
+    margin: 0;
+  }
+
+  @media (min-width: 64rem) {
+    padding-block: var(--space-48);
+  }
+}
+
+/* Cartes des envies (photo, cadre fin, titre en bas) : elles servent de filtres. */
+.envies {
+  display: grid;
+  width: 100%;
+  margin: var(--space-8) 0 0;
+  gap: var(--space-12);
+  list-style: none;
+
+  @media (min-width: 64rem) {
+    grid-template-columns: repeat(3, 18.75rem);
+    justify-content: center;
+    width: auto;
+    gap: var(--space-24);
+  }
+}
+
+#primary .envie-carte {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 7.5rem;
+  padding: var(--space-24);
+  background: linear-gradient(rgb(30 26 23 / 0.35), rgb(30 26 23 / 0.35)), var(--envie-image) center / cover no-repeat;
+  color: var(--color-creme);
+  text-decoration: none;
+
+  /* Cadre fin à 12 px du bord. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: var(--space-12);
+    border: 1px solid rgb(251 247 242 / 0.6);
+    pointer-events: none;
+  }
+
+  /* Envie en cours ou survolée : voile caramel foncé. */
+  &[aria-current="page"],
+  &:hover {
+    background-image: linear-gradient(rgb(138 101 68 / 0.7), rgb(138 101 68 / 0.7)), var(--envie-image);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-text-main);
+    outline-offset: 2px;
+  }
+
+  .envie-carte__titre {
+    font-family: var(--font-title);
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  @media (min-width: 64rem) {
+    align-items: flex-end;
+    height: 13.75rem;
+  }
+}
+
+/* Plats de l'envie : même grille que La Carte, sur fond caramel. */
+.envie-plats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-inline: calc(50% - 50vw);
+  padding: var(--space-24) var(--space-16);
+  gap: var(--space-48);
+  background-color: var(--color-bg-menu);
+
+  .woocommerce {
+    margin: 0;
+  }
+
+  @media (min-width: 64rem) {
+    padding-block: var(--space-32);
+  }
+}
+
+/* Version blanche du bouton secondaire, sur le fond caramel. */
+#primary .envie-plats__retour {
+  margin: 0 0 var(--space-16);
+  background-image: url("assets/img/bouton-secondaire-blanc.svg");
+  color: var(--color-blanc);
+
+  &:focus-visible {
+    outline-color: var(--color-blanc);
   }
 }

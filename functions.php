@@ -8,6 +8,7 @@
  * IT-5 : page Panier « Vos plats » + « L'addition » (US-5.3), choix du mode de retrait (US-5.2, US-5.4).
  * IT-6 : page Commande « Bon de commande » + « L'addition », instructions de retrait modifiables (US-6.1, US-6.2).
  * IT-11 : page L'équipe et fiche Membre (type de publication « membre » et champs créés avec SCF, US-11.1 à US-11.5).
+ * IT-12 : taxonomie « envie » (SCF) indépendante des catégories, page d'une envie (US-12.1 à US-12.3).
  *
  * @package chalet-child
  */
@@ -84,7 +85,7 @@ function chalet_titre_page() {
 	if ( is_shop() ) {
 		return 'La Carte';
 	}
-	if ( is_product_category() ) {
+	if ( is_product_category() || is_tax( 'envie' ) ) { // IT-12 : nom de l'envie.
 		return single_term_title( '', false );
 	}
 	if ( is_product() ) {
@@ -126,31 +127,20 @@ function chalet_entete() {
 		<div class="entete__barre">
 			<p class="entete__horaires"><span class="entete__badge">Horaires</span> 12h-14h, 19h30-22h30</p>
 			<ul class="entete__actions">
-				<li><a class="entete__lien entete__lien--reservation" href="https://lechaletlimoges.com/">Réservation</a></li>
+				<li><span class="entete__lien entete__lien--reservation entete__lien--inactif">Réservation</span></li><?php // Volontairement sans lien : pas de réservation en ligne sur ce site. ?>
 				<li>
 					<a class="entete__lien entete__lien--panier" href="<?php echo esc_url( wc_get_cart_url() ); ?>">
 						<span class="screen-reader-text">Panier</span><?php echo chalet_compteur_panier(); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 					</a>
 				</li>
 				<li>
-					<details class="entete__menu">
-						<summary class="entete__lien entete__lien--menu"><span class="screen-reader-text">Menu</span></summary>
-						<?php
-						// Menu « Primaire » de Storefront (Apparence > Menus). S'il n'existe pas encore : liste par défaut.
-						wp_nav_menu(
-							array(
-								'theme_location' => 'primary',
-								'container'      => false,
-								'menu_class'     => 'entete__sous-menu',
-								'depth'          => 1,
-								'fallback_cb'    => 'chalet_menu_par_defaut',
-							)
-						);
-						?>
-					</details>
+					<button type="button" class="entete__lien entete__lien--menu" aria-haspopup="dialog" aria-controls="menu-principal" aria-expanded="false">
+						<span class="screen-reader-text">Ouvrir le menu</span>
+					</button>
 				</li>
 			</ul>
 		</div>
+		<?php chalet_menu_plein_ecran(); ?>
 		<a class="entete__logo" href="<?php echo esc_url( home_url( '/' ) ); ?>">
 			<img src="<?php echo esc_url( $img . 'logo-le-chalet.png' ); ?>" alt="Le Chalet – retour à la carte" width="286" height="42">
 		</a>
@@ -159,32 +149,109 @@ function chalet_entete() {
 	<?php
 }
 
-// Menu burger par défaut : les pages du site (La Carte, chaque catégorie, Panier).
-function chalet_menu_par_defaut() {
-	$liens      = array( 'La Carte' => wc_get_page_permalink( 'shop' ) );
-	$categories = get_terms(
-		array(
-			'taxonomy'   => 'product_cat',
-			'hide_empty' => true,
-			'exclude'    => array( (int) get_option( 'default_product_cat' ) ),
-			'orderby'    => 'term_id',
-		)
-	);
-	if ( ! is_wp_error( $categories ) ) {
-		foreach ( $categories as $categorie ) {
-			$liens[ $categorie->name ] = get_term_link( $categorie );
-		}
-	}
-	$liens['L’équipe']   = get_post_type_archive_link( 'membre' ); // IT-11.
-	$liens['Mon compte'] = wc_get_page_permalink( 'myaccount' ); // IT-7.
-	$liens['Panier']     = wc_get_cart_url();
+// Lien d'appel du numéro affiché dans le panneau du menu.
+function chalet_lien_reservation() {
+	return 'tel:+33555775181';
+}
 
-	echo '<ul class="entete__sous-menu">';
-	foreach ( $liens as $texte => $url ) {
-		echo '<li><a href="' . esc_url( $url ) . '">' . esc_html( $texte ) . '</a></li>';
+// Menu burger par défaut (si aucun menu « Primaire » n'est choisi dans Apparence > Menus).
+function chalet_menu_par_defaut() {
+	// IT-12 : « Nos envies » ouvre la première envie, dont la page montre les cartes des autres.
+	$envies = taxonomy_exists( 'envie' ) ? get_terms(
+		array(
+			'taxonomy'   => 'envie',
+			'hide_empty' => true,
+			'orderby'    => 'term_id',
+			'number'     => 1,
+		)
+	) : array();
+
+	$liens = array(
+		array( 'Accueil', 'https://lechaletlimoges.com/', false ),
+		array( 'La Carte', wc_get_page_permalink( 'shop' ), is_shop() || is_product_category() || is_product() ),
+	);
+	if ( $envies && ! is_wp_error( $envies ) ) {
+		$liens[] = array( 'Nos envies', get_term_link( $envies[0] ), is_tax( 'envie' ) );
 	}
+	$liens[] = array( 'L’équipe', get_post_type_archive_link( 'membre' ), is_post_type_archive( 'membre' ) || is_singular( 'membre' ) ); // IT-11.
+	$liens[] = array( 'Mon compte', wc_get_page_permalink( 'myaccount' ), is_account_page() ); // IT-7.
+	$liens[] = array( 'Panier', wc_get_cart_url(), is_cart() || is_checkout() );
+
+	echo '<ul class="menu-ecran__liens">';
+	foreach ( $liens as $lien ) {
+		$actif = $lien[2] ? ' aria-current="page"' : '';
+		echo '<li><a href="' . esc_url( $lien[1] ) . '"' . $actif . '>' . esc_html( $lien[0] ) . '</a></li>'; // phpcs:ignore WordPress.Security.EscapeOutput
+	}
+	echo '<li><span class="menu-ecran__inactif">Réserver</span></li>'; // Volontairement sans lien.
 	echo '</ul>';
 }
+
+// Menu plein écran (maquette « Menu ouvert ») : photo + liens à gauche, panneau caramel à droite.
+// <dialog> natif : la touche Échap, le focus et le fond inerte sont gérés par le navigateur.
+function chalet_menu_plein_ecran() {
+	$img = get_stylesheet_directory_uri() . '/assets/img/';
+	?>
+	<dialog class="menu-ecran" id="menu-principal" aria-label="Menu">
+		<div class="menu-ecran__photo">
+			<form method="dialog">
+				<button class="menu-ecran__fermer" type="submit">
+					<span class="screen-reader-text">Fermer le menu</span>
+					<svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3l26 26M29 3L3 29"/></svg>
+				</button>
+			</form>
+			<nav aria-label="Menu principal">
+				<?php
+				wp_nav_menu(
+					array(
+						'theme_location' => 'primary',
+						'container'      => false,
+						'menu_class'     => 'menu-ecran__liens',
+						'depth'          => 1,
+						'fallback_cb'    => 'chalet_menu_par_defaut',
+					)
+				);
+				?>
+			</nav>
+		</div>
+		<div class="menu-ecran__infos">
+			<span class="menu-ecran__taureau" aria-hidden="true"></span>
+			<img class="menu-ecran__logo" src="<?php echo esc_url( $img . 'logo-le-chalet.png' ); ?>" alt="Le Chalet" width="472" height="69">
+			<p class="menu-ecran__texte"><?php echo esc_html( chalet_adresse_retrait() ); ?></p>
+			<p class="menu-ecran__texte"><a href="<?php echo esc_url( chalet_lien_reservation() ); ?>">05 55 77 51 81</a></p>
+			<p class="menu-ecran__texte"><a href="mailto:lechalet.limoges@gmail.com">lechalet.limoges@gmail.com</a></p>
+			<p class="menu-ecran__label">Retrait des commandes</p>
+			<p class="menu-ecran__texte"><?php echo esc_html( ucfirst( chalet_horaires_retrait() ) ); ?></p>
+			<?php chalet_reseaux( 'menu-ecran__reseaux' ); ?>
+		</div>
+	</dialog>
+	<?php
+}
+
+// Instagram et Facebook : pied de page et menu.
+function chalet_reseaux( $classe ) {
+	?>
+	<ul class="<?php echo esc_attr( $classe ); ?>">
+		<li>
+			<a class="pied__reseau" href="https://www.instagram.com/lechalet__restaurant/">
+				<span class="screen-reader-text">Instagram</span>
+				<svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+			</a>
+		</li>
+		<li>
+			<a class="pied__reseau" href="https://www.facebook.com/LeChalet87">
+				<span class="screen-reader-text">Facebook</span>
+				<svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M13.5 21v-7.5h2.5l.5-3h-3V9c0-.9.4-1.5 1.6-1.5h1.5V5.1c-.5-.1-1.4-.1-2.2-.1-2.3 0-3.9 1.4-3.9 3.9v1.6H8v3h2.5V21"/></svg>
+			</a>
+		</li>
+	</ul>
+	<?php
+}
+
+// Ouverture / fermeture du menu.
+function chalet_script_menu() {
+	wp_enqueue_script( 'chalet-menu', get_stylesheet_directory_uri() . '/assets/js/menu.js', array(), '1.0.0', array( 'strategy' => 'defer' ) );
+}
+add_action( 'wp_enqueue_scripts', 'chalet_script_menu' );
 
 // Le compteur du panier se met à jour quand on ajoute un produit sans recharger la page.
 function chalet_fragment_panier( $fragments ) {
@@ -981,6 +1048,62 @@ function chalet_carte_membre( $membre_id, $titre = 'h2' ) {
 }
 
 /* --------------------------------------------------------------------------
+ * 8 sexies. IT-12 : taxonomie « envie » (créée dans SCF › Taxonomies).
+ *    Gabarit : taxonomy-envie.php (cartes des envies + grille des plats).
+ * ------------------------------------------------------------------------ */
+
+// Image d'une carte d'envie : champ SCF « image_envie » du terme s'il existe, sinon la photo d'un de ses plats.
+function chalet_image_envie( $terme ) {
+	$image = function_exists( 'get_field' ) ? get_field( 'image_envie', $terme ) : null;
+	if ( $image ) {
+		return is_array( $image ) ? $image['sizes']['medium_large'] : wp_get_attachment_image_url( $image, 'medium_large' );
+	}
+	$plats = get_posts(
+		array(
+			'post_type'      => 'product',
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+			'orderby'        => 'menu_order title',
+			'order'          => 'ASC',
+			'tax_query'      => array( // phpcs:ignore WordPress.DB.SlowDBQuery
+				array(
+					'taxonomy' => 'envie',
+					'terms'    => $terme->term_id,
+				),
+			),
+		)
+	);
+	return $plats ? get_the_post_thumbnail_url( $plats[0], 'medium_large' ) : '';
+}
+
+// Cartes photo des envies (page d'une envie et bloc « Nos envies » de La Carte). $actif : envie en cours.
+function chalet_cartes_envies( $actif = 0 ) {
+	$envies = get_terms(
+		array(
+			'taxonomy'   => 'envie',
+			'hide_empty' => true,
+			'orderby'    => 'term_id', // Ordre de création dans le back-office, comme sur la maquette.
+		)
+	);
+	if ( is_wp_error( $envies ) || ! $envies ) {
+		return;
+	}
+	?>
+	<nav aria-label="Les envies du Chalet">
+		<ul class="envies">
+			<?php foreach ( $envies as $terme ) : ?>
+				<li>
+					<a class="envie-carte" href="<?php echo esc_url( get_term_link( $terme ) ); ?>" style="--envie-image: url('<?php echo esc_url( chalet_image_envie( $terme ) ); ?>');"<?php echo $terme->term_id === $actif ? ' aria-current="page"' : ''; ?>>
+						<span class="envie-carte__titre"><?php echo esc_html( $terme->name ); ?></span>
+					</a>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+	</nav>
+	<?php
+}
+
+/* --------------------------------------------------------------------------
  * 9. Pied de page.
  * ------------------------------------------------------------------------ */
 function chalet_pied() {
@@ -998,20 +1121,7 @@ function chalet_pied() {
 			</ul>
 		</nav>
 		<p class="pied__infos">© Le Chalet. Tél. : <a href="tel:+33555775181">05 55 77 51 81</a>. 5 rue des Filles Notre-Dame, 87000 Limoges</p>
-		<ul class="pied__reseaux">
-			<li>
-				<a class="pied__reseau" href="https://www.instagram.com/lechalet__restaurant/">
-					<span class="screen-reader-text">Instagram</span>
-					<svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
-				</a>
-			</li>
-			<li>
-				<a class="pied__reseau" href="https://www.facebook.com/LeChalet87">
-					<span class="screen-reader-text">Facebook</span>
-					<svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M13.5 21v-7.5h2.5l.5-3h-3V9c0-.9.4-1.5 1.6-1.5h1.5V5.1c-.5-.1-1.4-.1-2.2-.1-2.3 0-3.9 1.4-3.9 3.9v1.6H8v3h2.5V21"/></svg>
-				</a>
-			</li>
-		</ul>
+		<?php chalet_reseaux( 'pied__reseaux' ); ?>
 	</div>
 	<?php
 }
