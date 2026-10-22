@@ -1502,6 +1502,34 @@ function chalet_nouveautes() {
 	$GLOBALS['chalet_nouveautes'] = false;
 }
 
+/* --------------------------------------------------------------------------
+ * 8 duodecies. IT-17 : factures PDF (extension PDF Invoices & Packing Slips for WooCommerce).
+ *    Modèle « chalet » : woocommerce/pdf/chalet/ (invoice.php et style.css).
+ *    Le lien « Facture » de la liste des commandes est ajouté par l'extension.
+ * ------------------------------------------------------------------------ */
+
+// Facture d'une commande pour le détail de Mon compte : numéro et lien, ou null si elle n'existe pas encore.
+function chalet_facture_commande( $commande ) {
+	$actions = wc_get_account_orders_actions( $commande );
+	if ( empty( $actions['invoice'] ) || ! function_exists( 'wcpdf_get_document' ) ) {
+		return null;
+	}
+	$facture = wcpdf_get_document( 'invoice', $commande );
+	return array(
+		'numero' => ( $facture && $facture->exists() ) ? $facture->get_number()->get_formatted() : '',
+		'url'    => $actions['invoice']['url'],
+	);
+}
+
+// Libellé court du lien de la liste des commandes, comme sur la maquette (« Facture », à côté de « Voir »).
+function chalet_libelle_facture( $actions ) {
+	if ( isset( $actions['invoice'] ) ) {
+		$actions['invoice']['name'] = 'Facture';
+	}
+	return $actions;
+}
+add_filter( 'woocommerce_my_account_my_orders_actions', 'chalet_libelle_facture', 1000 ); // Après l'extension (999).
+
 // Ajout des frais au calcul du panier : recalculé à chaque changement (quantité, plat retiré, code promo).
 function chalet_frais_preparation( $panier ) {
 	if ( is_admin() && ! wp_doing_ajax() ) {

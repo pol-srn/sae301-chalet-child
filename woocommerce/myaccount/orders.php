@@ -48,7 +48,7 @@ do_action( 'woocommerce_before_account_orders', $has_orders );
 				<p class="commande-carte__fin">
 					<span class="badge <?php echo esc_attr( chalet_classe_badge( $statut ) ); ?>"><?php echo esc_html( wc_get_order_status_name( $statut ) ); ?></span>
 					<?php foreach ( $actions as $cle => $action ) : ?>
-						<a class="commande-carte__action commande-carte__action--<?php echo esc_attr( $cle ); ?>" href="<?php echo esc_url( $action['url'] ); ?>" aria-label="<?php echo esc_attr( $action['name'] . ' la commande n° ' . $order->get_order_number() ); ?>"><?php echo esc_html( $action['name'] ); ?></a>
+						<a class="commande-carte__action commande-carte__action--<?php echo esc_attr( $cle ); ?>" href="<?php echo esc_url( $action['url'] ); ?>"<?php echo 'invoice' === $cle ? ' target="_blank" rel="noopener"' : ''; // IT-17 : PDF dans un nouvel onglet. ?> aria-label="<?php echo esc_attr( ( 'invoice' === $cle ? 'Télécharger la facture de' : $action['name'] ) . ' la commande n° ' . $order->get_order_number() ); ?>"><?php echo esc_html( $action['name'] ); ?></a>
 					<?php endforeach; ?>
 				</p>
 			</li>

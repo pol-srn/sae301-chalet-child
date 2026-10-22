@@ -14,6 +14,7 @@ $statut    = $order->get_status();
 $suivi     = chalet_suivi_commande( $order );
 $annulable = in_array( $statut, apply_filters( 'woocommerce_valid_order_statuses_for_cancel', array( 'pending', 'failed' ), $order ), true ); // phpcs:ignore WooCommerce.Commenting.CommentHooks -- Hook de WooCommerce.
 $infos     = array_filter( array( $order->get_shipping_method(), $order->get_payment_method_title() ) );
+$facture   = chalet_facture_commande( $order );
 ?>
 <div class="detail-commande">
 	<div class="tableau__tete">
@@ -43,6 +44,12 @@ $infos     = array_filter( array( $order->get_shipping_method(), $order->get_pay
 		<?php chalet_addition_commande( $order ); ?>
 
 		<aside class="imprevu">
+			<?php if ( $facture ) : // IT-17 : même lien que « Facture » dans la liste des commandes. ?>
+				<h3 class="imprevu__titre">Votre facture</h3>
+				<p class="imprevu__texte">La facture <?php echo $facture['numero'] ? esc_html( $facture['numero'] ) . ' ' : ''; ?>de cette commande est disponible au format PDF.</p>
+				<a class="button compte__bouton compte__bouton--secondaire" href="<?php echo esc_url( $facture['url'] ); ?>" target="_blank" rel="noopener">Facture PDF<span class="screen-reader-text"> de la commande n° <?php echo esc_html( $order->get_order_number() ); ?></span></a>
+				<hr class="imprevu__separateur">
+			<?php endif; ?>
 			<?php if ( $annulable ) : ?>
 				<h3 class="imprevu__titre">Un imprévu ?</h3>
 				<p class="imprevu__texte">Vous pouvez annuler tant que la commande n’est pas prête. Si vous l’avez réglée par virement, nous vous remboursons et vous recevez une confirmation par e-mail.</p>
