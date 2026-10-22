@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.14.4
+Version:      1.14.5
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -4192,4 +4192,22 @@ ul.products li.product .added_to_cart {
 /* Storefront masque le titre du formulaire d'avis (#reviews .comment-reply-title) : on l'affiche. */
 #reviews .avis__form-titre {
   display: block;
+}
+
+/* ==========================================================================
+   IT-X : champ piège des formulaires (invisible, ignoré au clavier et par les lecteurs d'écran)
+   ========================================================================== */
+.chalet-piege {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Message « avis bloqué » en haut du formulaire d'avis. */
+.avis .comment-form .woocommerce-error {
+  width: 100%;
+  margin: 0;
+  text-align: left;
 }

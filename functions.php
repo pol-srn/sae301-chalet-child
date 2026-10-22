@@ -11,6 +11,7 @@
  * IT-12 : taxonomie « envie » (SCF) indépendante des catégories, page d'une envie (US-12.1 à US-12.3).
  * IT-13 : ventes croisées en ardoises « Composez votre repas » (fiche) et « Vous oubliez quelque chose ? » (panier) (US-13.1 à US-13.3).
  * IT-14 : avis clients dans un onglet « Avis » de la fiche, réservés aux acheteurs certifiés et modérés (US-14.1, US-14.2).
+ * IT-X : protection invisible des formulaires d'inscription et d'avis (champ piège + délai minimum) (US-X.1 à US-X.3).
  *
  * @package chalet-child
  */
@@ -1336,6 +1337,77 @@ function chalet_carte_avis( $comment, $args, $depth ) {
 	<?php
 	// wp_list_comments() ferme le <li>.
 }
+
+/* --------------------------------------------------------------------------
+ * 8 nonies. IT-X : sécurité des formulaires (inscription et avis), sans captcha.
+ *    1. Champ piège (honeypot) : invisible pour un humain, rempli par les robots.
+ *    2. Délai minimum : l'heure d'affichage est signée ; un envoi en moins de 3 s est refusé.
+ *    S'ajoute aux protections natives : anti-flood de WordPress, avis réservés aux acheteurs, modération.
+ * ------------------------------------------------------------------------ */
+
+define( 'CHALET_DELAI_MINIMUM', 3 ); // Secondes : aucun humain ne remplit un formulaire plus vite.
+
+// Champs ajoutés aux formulaires protégés.
+function chalet_champs_antispam() {
+	$heure = time();
+	?>
+	<p class="chalet-piege" aria-hidden="true">
+		<label for="chalet_site_web">Ne pas remplir ce champ</label>
+		<input type="text" id="chalet_site_web" name="chalet_site_web" value="" tabindex="-1" autocomplete="off">
+	</p>
+	<input type="hidden" name="chalet_heure" value="<?php echo esc_attr( $heure ); ?>">
+	<input type="hidden" name="chalet_signature" value="<?php echo esc_attr( wp_hash( 'chalet-antispam|' . $heure ) ); ?>">
+	<?php
+}
+add_action( 'woocommerce_register_form', 'chalet_champs_antispam' );                  // Mon compte › Créer un compte.
+add_action( 'woocommerce_after_checkout_registration_form', 'chalet_champs_antispam' ); // Création de compte pendant la commande.
+add_action( 'comment_form', 'chalet_champs_antispam' );                               // Formulaire d'avis.
+
+// Vrai si l'envoi ressemble à celui d'un robot (champ piège rempli, heure absente ou falsifiée, envoi trop rapide).
+function chalet_envoi_suspect() {
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Formulaires déjà protégés par leur propre nonce (WooCommerce / WordPress).
+	$piege     = isset( $_POST['chalet_site_web'] ) ? sanitize_text_field( wp_unslash( $_POST['chalet_site_web'] ) ) : '';
+	$heure     = isset( $_POST['chalet_heure'] ) ? absint( $_POST['chalet_heure'] ) : 0;
+	$signature = isset( $_POST['chalet_signature'] ) ? sanitize_text_field( wp_unslash( $_POST['chalet_signature'] ) ) : '';
+	// phpcs:enable
+	if ( '' !== $piege || ! $heure ) {
+		return true;
+	}
+	if ( ! hash_equals( wp_hash( 'chalet-antispam|' . $heure ), $signature ) ) {
+		return true; // Heure modifiée par le robot.
+	}
+	return ( time() - $heure ) < CHALET_DELAI_MINIMUM;
+}
+
+// Inscription (Mon compte et commande) : erreur affichée en haut du formulaire, sans créer le compte.
+function chalet_inscription_antispam( $erreurs ) {
+	if ( chalet_envoi_suspect() ) {
+		$erreurs->add( 'chalet_antispam', 'Votre inscription n’a pas pu être validée. Patientez quelques secondes, puis réessayez.' );
+	}
+	return $erreurs;
+}
+add_filter( 'woocommerce_registration_errors', 'chalet_inscription_antispam' );
+
+// Avis : l'avis suspect n'est pas enregistré ; retour sur l'onglet Avis avec un message.
+function chalet_avis_antispam( $donnees ) {
+	if ( current_user_can( 'moderate_comments' ) ) {
+		return $donnees; // Réponses du restaurant depuis le back-office (sans les champs du formulaire public).
+	}
+	if ( 'product' === get_post_type( $donnees['comment_post_ID'] ) && chalet_envoi_suspect() ) {
+		wp_safe_redirect( add_query_arg( 'avis_bloque', 1, get_permalink( $donnees['comment_post_ID'] ) ) . '#reviews' );
+		exit;
+	}
+	return $donnees;
+}
+add_filter( 'preprocess_comment', 'chalet_avis_antispam' );
+
+// Message affiché dans le formulaire d'avis après un envoi bloqué.
+function chalet_message_avis_bloque() {
+	if ( isset( $_GET['avis_bloque'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Simple affichage.
+		echo '<div class="woocommerce-error" role="alert">Votre avis n’a pas pu être envoyé. Patientez quelques secondes, puis réessayez.</div>';
+	}
+}
+add_action( 'comment_form_top', 'chalet_message_avis_bloque' );
 
 /* --------------------------------------------------------------------------
  * 9. Pied de page.
