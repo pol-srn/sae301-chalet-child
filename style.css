@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.17.1
+Version:      1.18.5
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -3966,15 +3966,6 @@ ul.products li.product .added_to_cart {
     font-size: var(--font-size-prix);
   }
 
-  /* Ligne en zigzag du site officiel. */
-  .avis__zigzag {
-    width: 7.5rem;
-    height: 0.375rem;
-    background: linear-gradient(135deg, transparent 45%, var(--color-creme) 45% 55%, transparent 55%) 0 0 / 0.5rem 100%,
-      linear-gradient(45deg, transparent 45%, var(--color-creme) 45% 55%, transparent 55%) 0.25rem 0 / 0.5rem 100%;
-    opacity: 0.8;
-  }
-
   .avis__vide {
     margin: 0;
   }
@@ -4328,4 +4319,510 @@ ul.products li.product .added_to_cart {
 .badge.badge--nouveau {
   background-color: var(--color-highlight);
   color: var(--color-text-main);
+}
+/* ==========================================================================
+   IT-18 : filtres de La Carte (bouton de l'intro, panneau ardoise, sélection)
+   ========================================================================== */
+
+/* Bouton « Filtrer et trier » en haut de la carte : bouton secondaire blanc (comme « Voir toute la carte »),
+   pastille or = nombre de filtres actifs. */
+.carte-filtres {
+  margin: 0 calc(50% - 50vw);
+  padding: var(--space-32) var(--space-16) 0;
+  background-color: var(--color-bg-menu);
+  text-align: center;
+}
+
+.site-main .carte-filtres__bouton.button,
+.site-main .carte-filtres__bouton.button:hover {
+  position: relative;
+  background-image: url("assets/img/bouton-secondaire-blanc.svg");
+  color: var(--color-text-inverse);
+  cursor: pointer;
+}
+
+.site-main .carte-filtres__bouton.button:focus-visible {
+  outline-color: var(--color-blanc);
+}
+
+.carte-filtres__pastille {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  background-color: var(--color-or);
+  color: var(--color-noir);
+  font-size: 0.75rem;
+  line-height: 1.5rem;
+}
+
+/* Panneau ouvert : la page ne défile plus ; panneau et voile partent du haut de la carte. */
+.filtres-ouverts {
+  overflow: hidden;
+}
+
+.filtres-voile {
+  position: fixed;
+  inset: var(--filtres-haut, 0) 0 0;
+  z-index: 20;
+  background-color: rgb(30 26 23 / 0.55);
+}
+
+.filtres {
+  position: fixed;
+  top: var(--filtres-haut, 0);
+  bottom: 0;
+  left: 0;
+  z-index: 21;
+  width: min(26.25rem, 100vw);
+  color: var(--color-creme);
+  background-color: var(--color-noir);
+
+  /* Double filet de L'addition (8 et 12 px du bord). */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0.75rem;
+    z-index: 1;
+    border: 1px solid rgb(251 247 242 / 0.35);
+    outline: 1px solid rgb(251 247 242 / 0.35);
+    outline-offset: 0.25rem;
+    pointer-events: none;
+  }
+}
+
+.filtres[hidden],
+.filtres-voile[hidden] {
+  display: none;
+}
+
+/* Le formulaire tient dans le double filet : le contenu défile à l'intérieur, sans croiser le cadre. */
+.filtres__formulaire {
+  position: absolute;
+  inset: 1rem;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+
+  /* Encoches en losange de L'addition, sur le filet. */
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    top: 2.75rem;
+    z-index: 2;
+    width: 0.625rem;
+    height: 0.625rem;
+    border: 1px solid var(--color-or);
+    background-color: var(--color-noir);
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  &::before {
+    left: -0.5625rem;
+  }
+
+  &::after {
+    right: -0.5625rem;
+  }
+}
+
+.filtres__contenu {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--space-24) var(--space-16) var(--space-16);
+  gap: var(--space-24);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.filtres__tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-16);
+}
+
+.filtres__surtitre,
+.filtres .filtre__titre {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-main);
+  font-size: var(--font-size-petit);
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-titre);
+  text-transform: uppercase;
+  color: var(--color-or);
+}
+
+.filtres__titre {
+  margin: var(--space-8) 0 0;
+  font-size: 1.75rem;
+  color: var(--color-creme);
+}
+
+.filtres__nombre {
+  margin: var(--space-4) 0 0;
+  font-size: var(--font-size-petit);
+}
+
+#primary .filtres__fermer {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  align-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-creme);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-or);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-or);
+  }
+}
+
+/* Un widget = un groupe : titre suivi d'un filet.
+   Storefront donne un fond blanc et des marges aux fieldset, legend et label : on les retire ici. */
+.filtres .filtre {
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+}
+
+#primary .filtres .filtre__choix {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+
+  label {
+    margin: 0;
+  }
+
+  .filtre__titre {
+    margin-left: 0;
+    padding: 0;
+    background: none;
+  }
+}
+
+.filtre__choix {
+  .filtre__titre {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-bottom: var(--space-8);
+    gap: var(--space-12);
+
+    &::after {
+      content: "";
+      flex: 1;
+      border-top: 1px solid rgb(251 247 242 / 0.35);
+    }
+  }
+}
+
+/* Champ natif masqué (toujours lisible au clavier et par les lecteurs d'écran), repère dessiné à côté. */
+.filtre__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* Choix : repère + nom ........ n plats. Case carrée = plusieurs choix, losange = un seul. */
+.filtre__ligne {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  gap: var(--space-12);
+  cursor: pointer;
+
+  &::before {
+    content: "";
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    border: 1px solid var(--color-creme);
+  }
+
+  &.filtre__ligne--radio::before {
+    width: 0.75rem;
+    height: 0.75rem;
+    margin: 0 0.1875rem;
+    transform: rotate(45deg);
+  }
+
+  &:has(:checked) {
+    font-weight: 700;
+    color: var(--color-or);
+
+    &::before {
+      border-color: var(--color-or);
+      background: var(--color-or) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M4.5 9.2l3.2 3 5.8-6.4' fill='none' stroke='%231e1a17' stroke-width='1.6'/%3E%3C/svg%3E") center / 100% no-repeat;
+    }
+  }
+
+  &.filtre__ligne--radio:has(:checked)::before {
+    background-image: none;
+  }
+
+  &:has(:focus-visible) {
+    outline: 2px solid var(--color-or);
+    outline-offset: 2px;
+  }
+
+  &:hover {
+    color: var(--color-or);
+  }
+
+  /* Aucun plat avec ce choix, compte tenu des autres : grisé et non cliquable. */
+  &.filtre__ligne--vide {
+    opacity: 0.35;
+    cursor: not-allowed;
+
+    &:hover {
+      color: inherit;
+    }
+  }
+}
+
+.filtre__points {
+  flex: 1;
+  min-width: var(--space-16);
+  border-bottom: 1px dotted rgb(251 247 242 / 0.5);
+}
+
+.filtre__nombre {
+  font-size: var(--font-size-petit);
+}
+
+/* Budget : curseur à deux poignées en losange or (deux champs range superposés sur une piste commune). */
+.filtre__montants {
+  margin: 0 0 var(--space-8);
+}
+
+.filtre__montants output {
+  font-weight: 700;
+  color: var(--color-or);
+}
+
+.filtre__curseur {
+  position: relative;
+  height: 2.75rem;
+  margin: 0 var(--space-8);
+}
+
+.filtre__piste {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(to right, rgb(251 247 242 / 0.35) var(--gauche, 0%), var(--color-or) var(--gauche, 0%) var(--droite, 100%), rgb(251 247 242 / 0.35) var(--droite, 100%));
+  transform: translateY(-50%);
+}
+
+.filtre__plage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: none;
+  appearance: none;
+  pointer-events: none; /* Seules les poignées réagissent : les deux champs se superposent. */
+
+  &::-webkit-slider-runnable-track {
+    background: none;
+  }
+
+  &::-webkit-slider-thumb {
+    width: 1.125rem;
+    height: 1.125rem;
+    border: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M9 1l8 8-8 8-8-8z' fill='%23e5af4a'/%3E%3C/svg%3E") center / contain no-repeat;
+    cursor: grab;
+    appearance: none;
+    pointer-events: auto;
+  }
+
+  &::-moz-range-track {
+    background: none;
+  }
+
+  &::-moz-range-thumb {
+    width: 1.125rem;
+    height: 1.125rem;
+    border: none;
+    border-radius: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M9 1l8 8-8 8-8-8z' fill='%23e5af4a'/%3E%3C/svg%3E") center / contain no-repeat;
+    cursor: grab;
+    pointer-events: auto;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--color-creme);
+    outline-offset: 2px;
+  }
+
+  &:focus-visible::-moz-range-thumb {
+    outline: 2px solid var(--color-creme);
+    outline-offset: 2px;
+  }
+}
+
+/* Barre fixe du bas : « Tout effacer » et le bouton principal du site (désactivé si aucun plat). */
+.filtres__actions {
+  display: flex;
+  flex: none;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-16);
+  gap: var(--space-16);
+  border-top: 1px solid rgb(251 247 242 / 0.35);
+}
+
+.site-main .filtres__voir.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#primary .filtres__effacer {
+  font-size: var(--font-size-petit);
+  color: var(--color-creme);
+}
+
+/* Ligne en zigzag du site officiel (bande des avis IT-14, bande « Votre sélection » IT-18). */
+.avis__zigzag,
+.resultats__zigzag {
+  display: inline-block;
+  width: 7.5rem;
+  height: 0.375rem;
+  background: linear-gradient(135deg, transparent 45%, var(--color-creme) 45% 55%, transparent 55%) 0 0 / 0.5rem 100%,
+    linear-gradient(45deg, transparent 45%, var(--color-creme) 45% 55%, transparent 55%) 0.25rem 0 / 0.5rem 100%;
+  opacity: 0.8;
+}
+
+/* Bande « Votre sélection » : ornement, titre en toutes lettres, phrase récapitulative, filtres retirables. */
+.resultats {
+  text-align: center;
+
+  .ornement {
+    display: block;
+    margin: 0 auto var(--space-12);
+    color: var(--color-creme);
+  }
+
+  .resultats__surtitre {
+    margin: 0 0 var(--space-8);
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-text-inverse);
+  }
+
+  .resultats__titre {
+    margin-bottom: var(--space-8);
+  }
+
+  .resultats__phrase {
+    margin: 0 0 var(--space-12);
+    font-family: Georgia, serif;
+    font-size: 1.125rem;
+    font-style: italic;
+    color: var(--color-text-inverse);
+  }
+
+  .resultats__zigzag {
+    margin-bottom: var(--space-16);
+  }
+
+  @media (min-width: 64rem) {
+    .resultats__phrase {
+      font-size: 1.25rem;
+    }
+  }
+
+  .resultats__actifs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: var(--space-32);
+    gap: var(--space-8) var(--space-24);
+
+    ul {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 0;
+      gap: var(--space-8) var(--space-24);
+      list-style: none;
+    }
+
+    li {
+      margin: 0;
+
+      &::before {
+        content: none;
+      }
+    }
+  }
+
+  .resultats__vide {
+    max-width: 32rem;
+    margin: 0 auto;
+    color: var(--color-text-inverse);
+  }
+}
+
+/* Cartes centrées quel que soit leur nombre : les colonnes vides de auto-fit disparaissent. */
+@media (min-width: 64rem) {
+  #primary .resultats ul.products {
+    grid-template-columns: repeat(auto-fit, 19.1875rem);
+  }
+}
+
+#primary .resultats__actifs li a,
+#primary .resultats__effacer {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  gap: var(--space-8);
+  color: var(--color-text-inverse);
+}
+
+#primary .resultats__actifs li a {
+  text-decoration: none;
+
+  &::before {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    background-color: var(--color-text-inverse);
+    transform: rotate(45deg);
+  }
+
+  &::after {
+    content: "×";
+    font-size: 1.25rem;
+  }
 }

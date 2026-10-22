@@ -284,20 +284,40 @@ function chalet_carte() {
 	<section class="intro" aria-labelledby="intro-titre">
 		<h2 class="intro__titre" id="intro-titre">Click &amp; Collect</h2>
 		<p class="intro__texte">Commandez, nous préparons, vous récupérez.</p>
-		<nav class="intro__nav" aria-label="Catégories de la carte">
-			<ul class="intro__liste">
-				<?php foreach ( $categories as $categorie ) : ?>
-					<li><a class="intro__lien" href="#<?php echo esc_attr( $categorie->slug ); ?>"><?php echo esc_html( $categorie->name ); ?></a></li>
-				<?php endforeach; ?>
-			</ul>
-		</nav>
+		<?php if ( ! chalet_filtres_actifs() ) : ?>
+			<nav class="intro__nav" aria-label="Catégories de la carte">
+				<ul class="intro__liste">
+					<?php foreach ( $categories as $categorie ) : ?>
+						<li><a class="intro__lien" href="#<?php echo esc_attr( $categorie->slug ); ?>"><?php echo esc_html( $categorie->name ); ?></a></li>
+					<?php endforeach; ?>
+				</ul>
+			</nav>
+		<?php endif; ?>
 	</section>
-	<?php foreach ( $categories as $categorie ) : ?>
-		<section class="categorie" id="<?php echo esc_attr( $categorie->slug ); ?>" aria-labelledby="titre-<?php echo esc_attr( $categorie->slug ); ?>">
-			<h2 class="categorie__titre" id="titre-<?php echo esc_attr( $categorie->slug ); ?>"><?php echo esc_html( $categorie->name ); ?></h2>
-			<?php echo do_shortcode( '[products category="' . esc_attr( $categorie->slug ) . '" columns="3" limit="-1" orderby="menu_order" order="ASC"]' ); ?>
-		</section>
-	<?php endforeach; ?>
+
+	<div class="carte-zone">
+		<?php if ( is_active_sidebar( 'filtres-carte' ) ) : // IT-18 : en haut de la carte, ouvre le panneau des filtres. ?>
+			<p class="carte-filtres">
+				<button type="button" class="button compte__bouton compte__bouton--secondaire carte-filtres__bouton" aria-expanded="false" aria-controls="filtres-carte">
+					Filtrer et trier
+					<?php if ( chalet_nombre_filtres() ) : ?>
+						<span class="carte-filtres__pastille"><?php echo esc_html( chalet_nombre_filtres() ); ?><span class="screen-reader-text"> filtres actifs</span></span>
+					<?php endif; ?>
+				</button>
+			</p>
+		<?php endif; ?>
+		<?php chalet_panneau_filtres(); ?>
+		<?php if ( chalet_filtres_actifs() ) : ?>
+			<?php chalet_resultats_filtres(); ?>
+		<?php else : ?>
+			<?php foreach ( $categories as $categorie ) : ?>
+				<section class="categorie" id="<?php echo esc_attr( $categorie->slug ); ?>" aria-labelledby="titre-<?php echo esc_attr( $categorie->slug ); ?>">
+					<h2 class="categorie__titre" id="titre-<?php echo esc_attr( $categorie->slug ); ?>"><?php echo esc_html( $categorie->name ); ?></h2>
+					<?php echo do_shortcode( '[products category="' . esc_attr( $categorie->slug ) . '" columns="3" limit="-1" orderby="menu_order" order="ASC"]' ); ?>
+				</section>
+			<?php endforeach; ?>
+		<?php endif; ?>
+	</div>
 	<?php
 }
 
@@ -1467,6 +1487,25 @@ function chalet_reste_avant_seuil( $panier ) {
 	return max( 0, $seuil - $plats );
 }
 
+// Ajout des frais au calcul du panier : recalculé à chaque changement (quantité, plat retiré, code promo).
+function chalet_frais_preparation( $panier ) {
+	if ( is_admin() && ! wp_doing_ajax() ) {
+		return;
+	}
+	if ( chalet_reste_avant_seuil( $panier ) > 0 ) {
+		$panier->add_fee( 'Frais de préparation', (float) get_option( 'chalet_frais_montant', 0 ) );
+	}
+}
+add_action( 'woocommerce_cart_calculate_fees', 'chalet_frais_preparation' );
+
+// Phrase d'incitation sous la ligne des frais (addition du panier).
+function chalet_incitation_frais() {
+	$reste = chalet_reste_avant_seuil( WC()->cart );
+	if ( $reste > 0 ) {
+		echo '<p class="addition__incitation">Plus que ' . wp_kses_post( wc_price( $reste ) ) . ' de plats pour ne plus payer de frais de préparation.</p>';
+	}
+}
+
 /* --------------------------------------------------------------------------
  * 8 undecies. IT-16 : page d'accueil (front-page.php), 3 derniers produits ajoutés.
  * ------------------------------------------------------------------------ */
@@ -1530,24 +1569,228 @@ function chalet_libelle_facture( $actions ) {
 }
 add_filter( 'woocommerce_my_account_my_orders_actions', 'chalet_libelle_facture', 1000 ); // Après l'extension (999).
 
-// Ajout des frais au calcul du panier : recalculé à chaque changement (quantité, plat retiré, code promo).
-function chalet_frais_preparation( $panier ) {
-	if ( is_admin() && ! wp_doing_ajax() ) {
+/* --------------------------------------------------------------------------
+ * 8 terdecies. IT-18 : recherche et filtrage de La Carte.
+ *    Zone de widgets « Filtres de La Carte » (Apparence › Widgets) remplie avec le widget
+ *    « Chalet : filtre de La Carte » (inc/class-chalet-widget-filtre.php) : tri, budget, Taille, Régime.
+ *    Plusieurs choix puis « Voir les plats » ; panneau ouvert depuis le haut de la carte (assets/js/filtres.js).
+ * ------------------------------------------------------------------------ */
+
+function chalet_zone_filtres() {
+	register_sidebar(
+		array(
+			'name'          => 'Filtres de La Carte',
+			'id'            => 'filtres-carte',
+			'description'   => 'Widgets « Chalet : filtre de La Carte » du panneau « Filtrer et trier » : un widget par critère.',
+			'before_widget' => '<section id="%1$s" class="filtre %2$s">',
+			'after_widget'  => '</section>',
+			'before_title'  => '<h3 class="filtre__titre">',
+			'after_title'   => '</h3>',
+		)
+	);
+	require_once get_stylesheet_directory() . '/inc/class-chalet-widget-filtre.php';
+	register_widget( 'Chalet_Widget_Filtre' );
+}
+add_action( 'widgets_init', 'chalet_zone_filtres' );
+
+// Plats de La Carte pour le calcul en direct (prix mini / maxi des variations, valeurs de chaque attribut).
+function chalet_donnees_filtres() {
+	static $plats = null; // Calculé une seule fois par page (bornes, compteur, panneau).
+	if ( null !== $plats ) {
+		return $plats;
+	}
+	$plats = array();
+	foreach ( wc_get_products( array( 'status' => 'publish', 'visibility' => 'catalog', 'limit' => -1 ) ) as $produit ) {
+		$plat = array(
+			'min'   => (float) ( $produit->is_type( 'variable' ) ? $produit->get_variation_price( 'min' ) : $produit->get_price() ),
+			'max'   => (float) ( $produit->is_type( 'variable' ) ? $produit->get_variation_price( 'max' ) : $produit->get_price() ),
+			'attrs' => array(),
+		);
+		foreach ( wc_get_attribute_taxonomies() as $attribut ) {
+			$plat['attrs'][ 'filter_' . $attribut->attribute_name ] = wc_get_product_terms( $produit->get_id(), wc_attribute_taxonomy_name( $attribut->attribute_name ), array( 'fields' => 'slugs' ) );
+		}
+		$plats[] = $plat;
+	}
+	return $plats;
+}
+
+// Bornes du curseur de prix : prix le plus bas et le plus haut de la carte, en euros entiers.
+function chalet_bornes_prix() {
+	$plats = chalet_donnees_filtres();
+	if ( ! $plats ) {
+		return array( 0, 0 );
+	}
+	return array( (int) floor( min( array_column( $plats, 'min' ) ) ), (int) ceil( max( array_column( $plats, 'max' ) ) ) );
+}
+
+// Prix choisis dans l'URL (min, max), ou null si le prix n'est pas filtré.
+function chalet_prix_actuel() {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Lecture des filtres de l'URL.
+	if ( ! isset( $_GET['min_price'] ) && ! isset( $_GET['max_price'] ) ) {
+		return null;
+	}
+	$bornes = chalet_bornes_prix();
+	return array(
+		isset( $_GET['min_price'] ) ? (int) $_GET['min_price'] : $bornes[0],
+		isset( $_GET['max_price'] ) ? (int) $_GET['max_price'] : $bornes[1],
+	);
+	// phpcs:enable
+}
+
+// Vrai si un tri ou un filtre (budget, attribut) est appliqué à La Carte.
+function chalet_filtres_actifs() {
+	return chalet_nombre_filtres() > 0 || ! empty( $_GET['orderby'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+}
+
+// Nombre de choix actifs (chaque valeur d'attribut + le prix), affiché sur le bouton et dans le panneau.
+function chalet_nombre_filtres() {
+	$nombre = chalet_prix_actuel() ? 1 : 0;
+	foreach ( WC_Query::get_layered_nav_chosen_attributes() as $attribut ) {
+		$nombre += count( $attribut['terms'] );
+	}
+	return $nombre;
+}
+
+// Le formulaire envoie filter_taille[]=…&prix_min=…&prix_max=… : on redirige vers l'URL attendue par WooCommerce
+// (filter_taille=a,b&query_type_taille=or&min_price=10&max_price=20), sans les champs vides ni les prix aux bornes.
+function chalet_url_filtres() {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Formulaire de recherche (GET), sans action.
+	if ( ! is_shop() || empty( $_GET['chalet_filtres'] ) ) {
 		return;
 	}
-	if ( chalet_reste_avant_seuil( $panier ) > 0 ) {
-		$panier->add_fee( 'Frais de préparation', (float) get_option( 'chalet_frais_montant', 0 ) );
+	$parametres = array();
+	foreach ( wc_get_attribute_taxonomies() as $attribut ) {
+		$cle = 'filter_' . $attribut->attribute_name;
+		if ( ! empty( $_GET[ $cle ] ) && is_array( $_GET[ $cle ] ) ) {
+			$parametres[ $cle ]                                      = implode( ',', array_map( 'sanitize_title', wp_unslash( $_GET[ $cle ] ) ) );
+			$parametres[ 'query_type_' . $attribut->attribute_name ] = 'or'; // Petite OU Bonne faim.
+		}
 	}
+	$bornes = chalet_bornes_prix();
+	if ( isset( $_GET['prix_min'], $_GET['prix_max'] ) ) {
+		$prix = array( (int) $_GET['prix_min'], (int) $_GET['prix_max'] );
+		sort( $prix ); // Poignées croisées : on remet le plus petit prix en premier.
+		if ( $prix[0] > $bornes[0] ) {
+			$parametres['min_price'] = $prix[0];
+		}
+		if ( $prix[1] < $bornes[1] ) {
+			$parametres['max_price'] = $prix[1];
+		}
+	}
+	$tri = isset( $_GET['orderby'] ) ? wc_clean( wp_unslash( $_GET['orderby'] ) ) : '';
+	if ( in_array( $tri, array( 'price', 'price-desc' ), true ) ) {
+		$parametres['orderby'] = $tri;
+	}
+	// phpcs:enable
+	wp_safe_redirect( add_query_arg( $parametres, wc_get_page_permalink( 'shop' ) ) );
+	exit;
 }
-add_action( 'woocommerce_cart_calculate_fees', 'chalet_frais_preparation' );
+add_action( 'template_redirect', 'chalet_url_filtres' );
 
-// Phrase d'incitation sous la ligne des frais (addition du panier).
-function chalet_incitation_frais() {
-	$reste = chalet_reste_avant_seuil( WC()->cart );
-	if ( $reste > 0 ) {
-		echo '<p class="addition__incitation">Plus que ' . wp_kses_post( wc_price( $reste ) ) . ' de plats pour ne plus payer de frais de préparation.</p>';
+// Panneau des filtres (ardoise) : formulaire des widgets, barre « Tout effacer / Voir les plats » en bas.
+function chalet_panneau_filtres() {
+	if ( ! is_active_sidebar( 'filtres-carte' ) ) {
+		return;
+	}
+	$nombre = chalet_nombre_filtres();
+	?>
+	<div class="filtres-voile" hidden></div>
+	<aside class="filtres" id="filtres-carte" aria-labelledby="filtres-titre" hidden>
+		<form class="filtres__formulaire" method="get" action="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>" data-plats="<?php echo esc_attr( wp_json_encode( chalet_donnees_filtres() ) ); ?>">
+			<input type="hidden" name="chalet_filtres" value="1">
+			<div class="filtres__contenu">
+				<div class="filtres__tete">
+					<div>
+						<p class="filtres__surtitre">Affiner la carte</p>
+						<h2 class="filtres__titre" id="filtres-titre">Selon votre envie</h2>
+						<p class="filtres__nombre" aria-live="polite"><?php echo $nombre ? esc_html( sprintf( _n( '%d filtre sélectionné', '%d filtres sélectionnés', $nombre, 'chalet-child' ), $nombre ) ) : ''; ?></p>
+					</div>
+					<button type="button" class="filtres__fermer">
+						<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+						<span class="screen-reader-text">Fermer les filtres</span>
+					</button>
+				</div>
+				<?php dynamic_sidebar( 'filtres-carte' ); ?>
+			</div>
+			<div class="filtres__actions">
+				<a class="filtres__effacer" href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>">Tout effacer</a>
+				<button type="submit" class="button compte__bouton filtres__voir">Voir les plats</button>
+			</div>
+		</form>
+	</aside>
+	<?php
+}
+
+// Titre de la sélection, nombre en toutes lettres : « Deux plats selon votre envie ».
+function chalet_titre_resultats( $nombre ) {
+	$lettres = array( 'Aucun', 'Un', 'Deux', 'Trois', 'Quatre', 'Cinq', 'Six', 'Sept', 'Huit', 'Neuf', 'Dix' );
+	$debut   = $lettres[ $nombre ] ?? (string) $nombre;
+	return $debut . ( $nombre > 1 ? ' plats' : ' plat' ) . ' selon votre envie';
+}
+
+// Phrase récapitulative des filtres : « Pour une grosse faim, côté viande, de 10 € à 20 €. »
+function chalet_phrase_filtres() {
+	$morceaux = array();
+	foreach ( WC_Query::get_layered_nav_chosen_attributes() as $taxonomie => $choix ) {
+		$noms = array();
+		foreach ( $choix['terms'] as $slug ) {
+			$terme  = get_term_by( 'slug', $slug, $taxonomie );
+			$noms[] = $terme ? mb_strtolower( $terme->name ) : $slug;
+		}
+		$morceaux[] = 'pa_taille' === $taxonomie ? 'pour une ' . implode( ' ou une ', $noms ) : 'côté ' . implode( ' ou ', $noms );
+	}
+	$prix = chalet_prix_actuel();
+	if ( $prix ) {
+		$bornes     = chalet_bornes_prix();
+		$morceaux[] = $prix[0] > $bornes[0] && $prix[1] < $bornes[1] ? 'de ' . $prix[0] . ' € à ' . $prix[1] . ' €' : ( $prix[0] > $bornes[0] ? 'à partir de ' . $prix[0] . ' €' : 'jusqu’à ' . $prix[1] . ' €' );
+	}
+	$tri = isset( $_GET['orderby'] ) ? wc_clean( wp_unslash( $_GET['orderby'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( in_array( $tri, array( 'price', 'price-desc' ), true ) ) {
+		$morceaux[] = 'price' === $tri ? 'du moins cher au plus cher' : 'du plus cher au moins cher';
+	}
+	return $morceaux ? ucfirst( implode( ', ', $morceaux ) ) . '.' : '';
+}
+
+// Plats filtrés : une seule bande « Votre sélection » avec les filtres actifs (retirables un par un).
+function chalet_resultats_filtres() {
+	$nombre = (int) $GLOBALS['wp_query']->found_posts;
+	?>
+	<section class="categorie resultats" aria-labelledby="resultats-titre">
+		<?php chalet_ornement_etoiles(); // IT-14. ?>
+		<p class="resultats__surtitre">Votre sélection</p>
+		<h2 class="categorie__titre resultats__titre" id="resultats-titre"><?php echo esc_html( chalet_titre_resultats( $nombre ) ); ?></h2>
+		<?php if ( chalet_phrase_filtres() ) : ?>
+			<p class="resultats__phrase"><?php echo esc_html( chalet_phrase_filtres() ); ?></p>
+		<?php endif; ?>
+		<span class="resultats__zigzag" aria-hidden="true"></span>
+		<div class="resultats__actifs">
+			<?php the_widget( 'WC_Widget_Layered_Nav_Filters', array( 'title' => '' ), array( 'before_widget' => '', 'after_widget' => '' ) ); ?>
+			<a class="resultats__effacer" href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>">Effacer les filtres</a>
+		</div>
+		<?php if ( woocommerce_product_loop() ) : ?>
+			<div class="woocommerce">
+				<?php
+				woocommerce_product_loop_start();
+				while ( have_posts() ) {
+					the_post();
+					wc_get_template_part( 'content', 'product' );
+				}
+				woocommerce_product_loop_end();
+				?>
+			</div>
+		<?php else : ?>
+			<p class="resultats__vide">Aucun plat ne correspond à ces filtres. Retirez-en un ou effacez-les pour retrouver toute la carte.</p>
+		<?php endif; ?>
+	</section>
+	<?php
+}
+
+function chalet_script_filtres() {
+	if ( is_shop() ) {
+		wp_enqueue_script( 'chalet-filtres', get_stylesheet_directory_uri() . '/assets/js/filtres.js', array(), '1.2.0', array( 'strategy' => 'defer' ) );
 	}
 }
+add_action( 'wp_enqueue_scripts', 'chalet_script_filtres' );
 
 /* --------------------------------------------------------------------------
  * 9. Pied de page.
