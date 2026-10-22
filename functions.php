@@ -1793,6 +1793,74 @@ function chalet_script_filtres() {
 add_action( 'wp_enqueue_scripts', 'chalet_script_filtres' );
 
 /* --------------------------------------------------------------------------
+ * 8 quaterdecies. IT-19 : tarif de la livraison à Limoges selon le poids de la commande.
+ *    3 tranches réglées dans WooCommerce › Réglages › Livraison › Options de livraison ;
+ *    poids de chaque plat dans sa fiche (onglet Expédition). Le retrait au Chalet reste gratuit.
+ * ------------------------------------------------------------------------ */
+
+function chalet_reglages_poids( $reglages ) {
+	$champ = function ( $titre, $id, $defaut, $aide = '' ) {
+		return array(
+			'title'             => $titre,
+			'id'                => $id,
+			'type'              => 'number',
+			'default'           => $defaut,
+			'desc_tip'          => $aide,
+			'custom_attributes' => array( 'min' => 0, 'step' => '0.01' ),
+		);
+	};
+	$reglages[] = array(
+		'title' => 'Livraison selon le poids',
+		'type'  => 'title',
+		'desc'  => 'Tarif de la livraison à Limoges selon le poids total de la commande (poids des plats renseigné dans chaque fiche produit).',
+		'id'    => 'chalet_poids',
+	);
+	$reglages[] = $champ( 'Tranche 1 : jusqu’à (kg)', 'chalet_poids_seuil_1', '1' );
+	$reglages[] = $champ( 'Tranche 1 : tarif (€)', 'chalet_poids_tarif_1', '3.90' );
+	$reglages[] = $champ( 'Tranche 2 : jusqu’à (kg)', 'chalet_poids_seuil_2', '2.5' );
+	$reglages[] = $champ( 'Tranche 2 : tarif (€)', 'chalet_poids_tarif_2', '4.90' );
+	$reglages[] = $champ( 'Tranche 3 : au-delà (€)', 'chalet_poids_tarif_3', '6.90', 'Tarif appliqué au-dessus de la tranche 2.' );
+	$reglages[] = array(
+		'type' => 'sectionend',
+		'id'   => 'chalet_poids',
+	);
+	return $reglages;
+}
+add_filter( 'woocommerce_shipping_settings', 'chalet_reglages_poids' );
+
+// Tarif de la tranche correspondant à un poids (kg).
+function chalet_tarif_poids( $poids ) {
+	if ( $poids <= (float) get_option( 'chalet_poids_seuil_1', 1 ) ) {
+		return (float) get_option( 'chalet_poids_tarif_1', 3.90 );
+	}
+	if ( $poids <= (float) get_option( 'chalet_poids_seuil_2', 2.5 ) ) {
+		return (float) get_option( 'chalet_poids_tarif_2', 4.90 );
+	}
+	return (float) get_option( 'chalet_poids_tarif_3', 6.90 );
+}
+
+// Le tarif forfaitaire « Livraison à Limoges » est remplacé par celui de la tranche de poids du panier.
+function chalet_livraison_au_poids( $tarifs, $colis ) {
+	$poids = 0;
+	foreach ( $colis['contents'] as $ligne ) {
+		$poids += (float) $ligne['data']->get_weight() * $ligne['quantity'];
+	}
+	foreach ( $tarifs as $tarif ) {
+		if ( 'flat_rate' === $tarif->get_method_id() ) {
+			$tarif->set_cost( chalet_tarif_poids( $poids ) );
+		}
+	}
+	return $tarifs;
+}
+add_filter( 'woocommerce_package_rates', 'chalet_livraison_au_poids', 10, 2 );
+
+// Sous « Livraison à Limoges » : poids de la commande, pour comprendre le tarif (US-19.3).
+function chalet_info_poids() {
+	$poids = WC()->cart ? (float) WC()->cart->get_cart_contents_weight() : 0;
+	return 'Selon le poids de votre commande : ' . wc_format_localized_decimal( round( $poids, 2 ) ) . ' kg';
+}
+
+/* --------------------------------------------------------------------------
  * 9. Pied de page.
  * ------------------------------------------------------------------------ */
 function chalet_pied() {

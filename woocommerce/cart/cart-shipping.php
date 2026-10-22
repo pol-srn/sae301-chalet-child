@@ -50,6 +50,8 @@ endif;
 						<span class="modes__prix"><?php echo $cout > 0 ? wp_kses_post( wc_price( $cout ) ) : 'Gratuit'; ?></span>
 						<?php if ( 'local_pickup' === $method->get_method_id() ) : ?>
 							<span class="modes__info"><?php echo esc_html( chalet_info_retrait() ); ?></span>
+						<?php elseif ( 'flat_rate' === $method->get_method_id() ) : // IT-19 : tarif selon le poids. ?>
+							<span class="modes__info"><?php echo esc_html( chalet_info_poids() ); ?></span>
 						<?php endif; ?>
 					</label>
 					<?php do_action( 'woocommerce_after_shipping_rate', $method, $index ); ?>
