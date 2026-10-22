@@ -27,18 +27,19 @@ defined( 'ABSPATH' ) || exit;
 			chalet_champ_code_promo();
 		}
 		?>
-		<?php if ( WC()->cart->needs_shipping() && WC()->cart->show_shipping() ) : ?>
-			<?php do_action( 'woocommerce_cart_totals_before_shipping' ); ?>
-			<?php wc_cart_totals_shipping_html(); ?>
-			<?php do_action( 'woocommerce_cart_totals_after_shipping' ); ?>
-		<?php endif; ?>
-		<?php foreach ( WC()->cart->get_fees() as $fee ) : ?>
-			<p class="addition__ligne">
+		<?php foreach ( WC()->cart->get_fees() as $fee ) : // IT-15 : frais de préparation, avant le mode de retrait. ?>
+			<p class="addition__ligne addition__ligne--plat">
 				<span class="addition__libelle"><?php echo esc_html( $fee->name ); ?></span>
 				<span class="addition__points" aria-hidden="true"></span>
 				<span class="addition__montant"><?php wc_cart_totals_fee_html( $fee ); ?></span>
 			</p>
 		<?php endforeach; ?>
+		<?php chalet_incitation_frais(); // IT-15 : ce qu'il manque pour ne plus payer de frais. ?>
+		<?php if ( WC()->cart->needs_shipping() && WC()->cart->show_shipping() ) : ?>
+			<?php do_action( 'woocommerce_cart_totals_before_shipping' ); ?>
+			<?php wc_cart_totals_shipping_html(); ?>
+			<?php do_action( 'woocommerce_cart_totals_after_shipping' ); ?>
+		<?php endif; ?>
 		<?php do_action( 'woocommerce_cart_totals_before_order_total' ); ?>
 		<p class="addition__ligne addition__ligne--total">
 			<span class="addition__libelle">Total</span>

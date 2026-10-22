@@ -1410,6 +1410,72 @@ function chalet_message_avis_bloque() {
 add_action( 'comment_form_top', 'chalet_message_avis_bloque' );
 
 /* --------------------------------------------------------------------------
+ * 8 decies. IT-15 : frais de préparation sous un seuil de commande.
+ *    Seuil et montant réglés dans WooCommerce › Réglages › Général (montant à 0 = règle désactivée).
+ * ------------------------------------------------------------------------ */
+
+// Réglages ajoutés à la fin de l'onglet Général de WooCommerce.
+function chalet_reglages_frais( $reglages ) {
+	$reglages[] = array(
+		'title' => 'Frais de préparation',
+		'type'  => 'title',
+		'desc'  => 'Frais fixes ajoutés au panier quand le montant des plats est inférieur au seuil. Mettre le montant à 0 pour désactiver la règle.',
+		'id'    => 'chalet_frais',
+	);
+	$reglages[] = array(
+		'title'             => 'Seuil (€)',
+		'desc_tip'          => 'En dessous de ce montant de plats (après code promo), les frais s’appliquent.',
+		'id'                => 'chalet_frais_seuil',
+		'type'              => 'number',
+		'default'           => '20',
+		'custom_attributes' => array( 'min' => 0, 'step' => '0.01' ),
+	);
+	$reglages[] = array(
+		'title'             => 'Montant des frais (€)',
+		'id'                => 'chalet_frais_montant',
+		'type'              => 'number',
+		'default'           => '0',
+		'custom_attributes' => array( 'min' => 0, 'step' => '0.01' ),
+	);
+	$reglages[] = array(
+		'type' => 'sectionend',
+		'id'   => 'chalet_frais',
+	);
+	return $reglages;
+}
+add_filter( 'woocommerce_general_settings', 'chalet_reglages_frais' );
+
+// Montant manquant pour atteindre le seuil (0 si la règle est désactivée ou le seuil atteint).
+function chalet_reste_avant_seuil( $panier ) {
+	$seuil   = (float) get_option( 'chalet_frais_seuil', 20 );
+	$montant = (float) get_option( 'chalet_frais_montant', 0 );
+	if ( $montant <= 0 || $panier->is_empty() ) {
+		return 0;
+	}
+	$plats = (float) $panier->get_cart_contents_total() + (float) $panier->get_cart_contents_tax(); // Après code promo.
+	return max( 0, $seuil - $plats );
+}
+
+// Ajout des frais au calcul du panier : recalculé à chaque changement (quantité, plat retiré, code promo).
+function chalet_frais_preparation( $panier ) {
+	if ( is_admin() && ! wp_doing_ajax() ) {
+		return;
+	}
+	if ( chalet_reste_avant_seuil( $panier ) > 0 ) {
+		$panier->add_fee( 'Frais de préparation', (float) get_option( 'chalet_frais_montant', 0 ) );
+	}
+}
+add_action( 'woocommerce_cart_calculate_fees', 'chalet_frais_preparation' );
+
+// Phrase d'incitation sous la ligne des frais (addition du panier).
+function chalet_incitation_frais() {
+	$reste = chalet_reste_avant_seuil( WC()->cart );
+	if ( $reste > 0 ) {
+		echo '<p class="addition__incitation">Plus que ' . wp_kses_post( wc_price( $reste ) ) . ' de plats pour ne plus payer de frais de préparation.</p>';
+	}
+}
+
+/* --------------------------------------------------------------------------
  * 9. Pied de page.
  * ------------------------------------------------------------------------ */
 function chalet_pied() {

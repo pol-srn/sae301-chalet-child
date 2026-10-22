@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.14.5
+Version:      1.15.0
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -4210,4 +4210,14 @@ ul.products li.product .added_to_cart {
   width: 100%;
   margin: 0;
   text-align: left;
+}
+
+/* ==========================================================================
+   IT-15 : frais de préparation (phrase d'incitation sous la ligne des frais)
+   ========================================================================== */
+.addition .addition__incitation {
+  margin: calc(var(--space-8) * -1) 0 0;
+  font-size: var(--font-size-petit);
+  font-weight: 400;
+  color: var(--color-accent);
 }
