@@ -35,6 +35,7 @@ if ( ! $checkout->is_registration_enabled() && $checkout->is_registration_requir
 				}
 				?>
 			</div>
+			<?php chalet_bloc_creneau( $checkout ); // IT-20 : jour et créneau de retrait ou de livraison. ?>
 			<?php if ( ! is_user_logged_in() && $checkout->is_registration_enabled() ) : // IT-7 : créer son compte en commandant (repris de checkout/form-billing.php). ?>
 				<div class="woocommerce-account-fields bon__compte">
 					<?php if ( ! $checkout->is_registration_required() ) : ?>

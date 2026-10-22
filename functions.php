@@ -866,6 +866,9 @@ function chalet_addition_commande( $order ) {
 						<span class="addition__points" aria-hidden="true"></span>
 						<span class="addition__montant"><?php echo (float) $order->get_shipping_total() > 0 ? wp_kses_post( wc_price( $order->get_shipping_total(), $devise ) ) : 'Gratuit'; ?></span>
 					</p>
+					<?php if ( chalet_creneau_lisible( $order ) ) : // IT-20. ?>
+						<p class="addition__creneau"><?php echo esc_html( ucfirst( chalet_creneau_lisible( $order ) ) ); ?></p>
+					<?php endif; ?>
 				<?php endif; ?>
 				<?php foreach ( $order->get_refunds() as $remboursement ) : ?>
 					<p class="addition__ligne addition__ligne--plat">
@@ -1859,6 +1862,151 @@ function chalet_info_poids() {
 	$poids = WC()->cart ? (float) WC()->cart->get_cart_contents_weight() : 0;
 	return 'Selon le poids de votre commande : ' . wc_format_localized_decimal( round( $poids, 2 ) ) . ' kg';
 }
+
+/* --------------------------------------------------------------------------
+ * 8 quindecies. IT-20 : créneau de retrait ou de livraison (page Commande).
+ *    Jours d'ouverture à venir (mardi → samedi), créneaux de 30 min au service du midi et du soir ;
+ *    un créneau trop proche (préparation, + trajet en livraison) n'est pas proposé.
+ * ------------------------------------------------------------------------ */
+
+define( 'CHALET_NB_JOURS_CRENEAUX', 4 );
+define( 'CHALET_DELAI_RETRAIT', 20 );   // Minutes de préparation.
+define( 'CHALET_DELAI_LIVRAISON', 45 ); // Préparation + trajet dans Limoges.
+
+// Créneaux d'une journée de service : « 12:00 » … « 13:30 », « 19:30 » … « 22:00 ».
+function chalet_creneaux_service() {
+	return array(
+		'Midi' => array( '12:00', '12:30', '13:00', '13:30' ),
+		'Soir' => array( '19:30', '20:00', '20:30', '21:00', '21:30', '22:00' ),
+	);
+}
+
+// Jours proposés : [ 'Y-m-d' => [ 'libelle' => 'Ven. 24', 'Midi' => [ '12:00' => disponible ], 'Soir' => … ] ].
+function chalet_jours_creneaux() {
+	$fuseau = wp_timezone();
+	$limite = new DateTimeImmutable( '+' . ( chalet_livraison_choisie() ? CHALET_DELAI_LIVRAISON : CHALET_DELAI_RETRAIT ) . ' minutes', $fuseau );
+	$jour   = new DateTimeImmutable( 'today', $fuseau );
+	$jours  = array();
+	for ( $i = 0; count( $jours ) < CHALET_NB_JOURS_CRENEAUX && $i < 14; $i++, $jour = $jour->modify( '+1 day' ) ) {
+		if ( (int) $jour->format( 'N' ) < 2 || (int) $jour->format( 'N' ) > 6 ) {
+			continue; // Fermé le dimanche et le lundi.
+		}
+		$services = array();
+		$ouvert   = false;
+		foreach ( chalet_creneaux_service() as $service => $heures ) {
+			foreach ( $heures as $heure ) {
+				$disponible                    = $jour->modify( $heure ) >= $limite;
+				$services[ $service ][ $heure ] = $disponible;
+				$ouvert                        = $ouvert || $disponible;
+			}
+		}
+		if ( ! $ouvert ) {
+			continue; // Aujourd'hui, s'il est trop tard pour le dernier créneau.
+		}
+		$libelle = 0 === $i ? 'Aujourd’hui' : ( 1 === $i ? 'Demain' : ucfirst( mb_substr( chalet_date_fr( $jour, 'jour' ), 0, 3 ) ) . '. ' . $jour->format( 'j' ) );
+		$jours[ $jour->format( 'Y-m-d' ) ] = array( 'libelle' => $libelle ) + $services;
+	}
+	return $jours;
+}
+
+// Bloc « Quand… ? » du bon de commande : jours, puis créneaux du jour choisi (assets/js/creneau.js).
+function chalet_bloc_creneau( $checkout ) {
+	$jours  = chalet_jours_creneaux();
+	$choisi = (string) $checkout->get_value( 'chalet_creneau' );
+	$jour   = substr( $choisi, 0, 10 );
+	if ( ! isset( $jours[ $jour ] ) ) {
+		$jour = (string) array_key_first( $jours );
+	}
+	$livraison = chalet_livraison_choisie();
+	?>
+	<fieldset class="creneau choix">
+		<legend class="creneau__titre"><?php echo $livraison ? 'Quand vous livrer ?' : 'Quand venez-vous chercher votre commande ?'; ?>&nbsp;<abbr class="required" title="obligatoire">*</abbr></legend>
+		<div class="choix__liste creneau__jours">
+			<?php foreach ( $jours as $date => $infos ) : ?>
+				<label class="choix__option"><input class="choix__radio" type="radio" name="chalet_jour" value="<?php echo esc_attr( $date ); ?>"<?php checked( $jour, $date ); ?>> <?php echo esc_html( $infos['libelle'] ); ?></label>
+			<?php endforeach; ?>
+		</div>
+		<?php foreach ( $jours as $date => $infos ) : ?>
+			<div class="creneau__heures" data-jour="<?php echo esc_attr( $date ); ?>"<?php echo $date === $jour ? '' : ' hidden'; ?>>
+				<?php foreach ( chalet_creneaux_service() as $service => $heures ) : ?>
+					<p class="creneau__service"><?php echo esc_html( $service ); ?></p>
+					<div class="choix__liste">
+						<?php foreach ( $heures as $heure ) : ?>
+							<?php $valeur = $date . ' ' . $heure; ?>
+							<label class="choix__option<?php echo $infos[ $service ][ $heure ] ? '' : ' creneau__passe'; ?>"><input class="choix__radio" type="radio" name="chalet_creneau" value="<?php echo esc_attr( $valeur ); ?>"<?php checked( $choisi, $valeur ); ?><?php disabled( ! $infos[ $service ][ $heure ] ); ?>> <?php echo esc_html( str_replace( ':', 'h', $heure ) ); ?></label>
+						<?php endforeach; ?>
+					</div>
+				<?php endforeach; ?>
+			</div>
+		<?php endforeach; ?>
+		<p class="creneau__aide"><?php echo $livraison ? 'Nous livrons à votre adresse pendant le créneau choisi.' : 'Votre commande sera prête à l’heure choisie, au comptoir du Chalet.'; ?> Les créneaux trop proches sont grisés.</p>
+	</fieldset>
+	<?php
+}
+
+// Validation : un créneau proposé et encore disponible est obligatoire.
+function chalet_verifier_creneau() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce vérifié par WooCommerce avant ce hook.
+	$valeur = isset( $_POST['chalet_creneau'] ) ? sanitize_text_field( wp_unslash( $_POST['chalet_creneau'] ) ) : '';
+	$jours  = chalet_jours_creneaux();
+	$jour   = substr( $valeur, 0, 10 );
+	$heure  = substr( $valeur, 11 );
+	$libre  = false;
+	foreach ( chalet_creneaux_service() as $service => $heures ) {
+		$libre = $libre || ! empty( $jours[ $jour ][ $service ][ $heure ] );
+	}
+	if ( ! $libre ) {
+		wc_add_notice( chalet_livraison_choisie() ? 'Choisissez un créneau de livraison.' : 'Choisissez un créneau de retrait.', 'error' );
+	}
+}
+add_action( 'woocommerce_checkout_process', 'chalet_verifier_creneau' );
+
+// Enregistrement dans la commande (champ « _chalet_creneau » au format AAAA-MM-JJ HH:MM).
+function chalet_enregistrer_creneau( $commande ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce vérifié par WooCommerce.
+	if ( ! empty( $_POST['chalet_creneau'] ) ) {
+		$commande->update_meta_data( '_chalet_creneau', sanitize_text_field( wp_unslash( $_POST['chalet_creneau'] ) ) );
+	}
+}
+add_action( 'woocommerce_checkout_create_order', 'chalet_enregistrer_creneau' );
+
+// Nom français du jour ou date complète, lus sur la date locale (pas de conversion de fuseau via un timestamp).
+function chalet_date_fr( $date, $format = 'complet' ) {
+	$jours = array( 1 => 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche' );
+	$mois  = array( 1 => 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre' );
+	$jour  = $jours[ (int) $date->format( 'N' ) ];
+	return 'jour' === $format ? $jour : $jour . ' ' . $date->format( 'j' ) . ' ' . $mois[ (int) $date->format( 'n' ) ];
+}
+
+// Créneau lisible : « jeudi 23 octobre · 20h00 ».
+function chalet_creneau_lisible( $commande ) {
+	$valeur = (string) $commande->get_meta( '_chalet_creneau' );
+	$date   = $valeur ? DateTimeImmutable::createFromFormat( 'Y-m-d H:i', $valeur, wp_timezone() ) : false;
+	return $date ? chalet_date_fr( $date ) . ' · ' . $date->format( 'G\hi' ) : '';
+}
+
+// Admin (fiche commande) et e-mails : le créneau à côté du mode de retrait.
+function chalet_creneau_admin( $commande ) {
+	if ( chalet_creneau_lisible( $commande ) ) {
+		echo '<p><strong>Créneau :</strong> ' . esc_html( chalet_creneau_lisible( $commande ) ) . '</p>';
+	}
+}
+add_action( 'woocommerce_admin_order_data_after_shipping_address', 'chalet_creneau_admin' );
+
+function chalet_creneau_email( $commande, $admin, $texte ) {
+	if ( ! chalet_creneau_lisible( $commande ) ) {
+		return;
+	}
+	echo $texte ? "\nCréneau : " . esc_html( chalet_creneau_lisible( $commande ) ) . "\n" : '<p><strong>Créneau :</strong> ' . esc_html( chalet_creneau_lisible( $commande ) ) . '</p>';
+}
+add_action( 'woocommerce_email_order_meta', 'chalet_creneau_email', 10, 3 );
+
+function chalet_script_creneau() {
+	if ( is_checkout() && ! is_order_received_page() ) {
+		wp_enqueue_script( 'chalet-creneau', get_stylesheet_directory_uri() . '/assets/js/creneau.js', array(), '1.0.0', array( 'strategy' => 'defer' ) );
+	}
+}
+add_action( 'wp_enqueue_scripts', 'chalet_script_creneau' );
 
 /* --------------------------------------------------------------------------
  * 9. Pied de page.
