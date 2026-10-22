@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.15.0
+Version:      1.16.2
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -4220,4 +4220,103 @@ ul.products li.product .added_to_cart {
   font-size: var(--font-size-petit);
   font-weight: 400;
   color: var(--color-accent);
+}
+
+/* ==========================================================================
+   IT-16 : page d'accueil (intro, nouveautés, étapes, envies)
+   ========================================================================== */
+.accueil {
+  .accueil__surtitre {
+    margin: 0;
+    font-size: var(--font-size-petit);
+    font-weight: 700;
+    letter-spacing: var(--letter-spacing-titre);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .accueil-intro,
+  .accueil-nouveautes,
+  .accueil-envies {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-inline: calc(50% - 50vw);
+    padding: var(--space-48) var(--space-16);
+    gap: var(--space-12);
+    text-align: center;
+  }
+
+  .accueil-intro,
+  .accueil-envies {
+    background-color: var(--color-bg-main);
+  }
+
+  .accueil-intro__titre,
+  .accueil-nouveautes__titre,
+  .accueil-envies__titre {
+    margin: 0;
+    font-size: 1.75rem;
+  }
+
+  .accueil-intro__texte {
+    max-width: 40rem;
+    margin: 0;
+  }
+
+  .accueil-intro__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: var(--space-8) 0 0;
+    gap: var(--space-16);
+  }
+
+  /* Bande caramel des 3 derniers produits, comme La Carte. */
+  .accueil-nouveautes {
+    gap: var(--space-8);
+    background-color: var(--color-bg-menu);
+
+    .accueil__surtitre,
+    .accueil-nouveautes__titre {
+      color: var(--color-text-inverse);
+    }
+
+    .woocommerce {
+      margin: var(--space-24) 0;
+    }
+  }
+
+  /* Bande « Comment ça marche ? » : pas de marge dessous, à la différence de la page Commande. */
+  .retrait {
+    margin-bottom: 0;
+  }
+
+  @media (min-width: 64rem) {
+    .accueil-intro,
+    .accueil-nouveautes,
+    .accueil-envies {
+      padding-block: var(--space-64);
+      gap: var(--space-16);
+    }
+
+    .accueil-intro__titre,
+    .accueil-envies__titre {
+      font-size: 2.5rem;
+    }
+
+    .accueil-nouveautes__titre {
+      font-size: 3rem;
+    }
+
+    .accueil-intro__actions {
+      flex-direction: row;
+      gap: var(--space-24);
+    }
+  }
+}
+
+.badge.badge--nouveau {
+  background-color: var(--color-highlight);
+  color: var(--color-text-main);
 }

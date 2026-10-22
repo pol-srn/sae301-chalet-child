@@ -85,6 +85,9 @@ add_action( 'init', 'chalet_reorganiser_storefront' );
  * 3. En-tête : barre (horaires, réservation, panier, menu) + logo + titre sur photo.
  * ------------------------------------------------------------------------ */
 function chalet_titre_page() {
+	if ( is_front_page() ) {
+		return 'Le Chalet, à emporter'; // IT-16 : page d'accueil.
+	}
 	if ( is_shop() ) {
 		return 'La Carte';
 	}
@@ -143,7 +146,7 @@ function chalet_entete() {
 		</div>
 		<?php chalet_menu_plein_ecran(); ?>
 		<a class="entete__logo" href="<?php echo esc_url( home_url( '/' ) ); ?>">
-			<img src="<?php echo esc_url( $img . 'logo-le-chalet.png' ); ?>" alt="Le Chalet – retour à la carte" width="286" height="42">
+			<img src="<?php echo esc_url( $img . 'logo-le-chalet.png' ); ?>" alt="Le Chalet – accueil" width="286" height="42">
 		</a>
 		<<?php echo $balise; // phpcs:ignore ?> class="entete__titre"><?php echo esc_html( chalet_titre_page() ); ?></<?php echo $balise; // phpcs:ignore ?>>
 	</div>
@@ -168,6 +171,7 @@ function chalet_menu_par_defaut() {
 	) : array();
 
 	$liens = array(
+		array( 'Accueil', home_url( '/' ), is_front_page() ), // IT-16 : page d'accueil du site (pas le site vitrine).
 		array( 'La Carte', wc_get_page_permalink( 'shop' ), is_shop() || is_product_category() || is_product() ),
 	);
 	if ( $envies && ! is_wp_error( $envies ) ) {
@@ -371,6 +375,8 @@ function chalet_badge_carte() {
 	$dispo = $product->get_availability();
 	if ( ! $product->is_in_stock() ) {
 		echo '<span class="badge badge--erreur carte-produit__badge">Épuisé</span>';
+	} elseif ( ! empty( $GLOBALS['chalet_nouveautes'] ) ) {
+		echo '<span class="badge badge--nouveau carte-produit__badge">Nouveau</span>'; // IT-16 : bloc « Nouveau à la carte ».
 	} elseif ( str_contains( $dispo['class'], 'stock--faible' ) ) {
 		echo '<span class="badge badge--alerte carte-produit__badge">' . esc_html( $dispo['availability'] ) . '</span>';
 	}
@@ -608,9 +614,15 @@ function chalet_info_retrait() {
 }
 
 function chalet_bande_retrait() {
+	chalet_bande_etapes( chalet_reglage_retrait( 'retrait_titre', 'Instructions pour le retrait' ) );
+}
+add_action( 'woocommerce_before_checkout_form', 'chalet_bande_retrait', 5 );
+
+// Bande des 3 étapes (page Commande, et « Comment ça marche ? » de l'accueil à l'IT-16).
+function chalet_bande_etapes( $titre, $ancre = '' ) {
 	?>
-	<div class="retrait">
-		<h2 class="retrait__titre"><?php echo esc_html( chalet_reglage_retrait( 'retrait_titre', 'Instructions pour le retrait' ) ); ?></h2>
+	<div class="retrait"<?php echo $ancre ? ' id="' . esc_attr( $ancre ) . '"' : ''; ?>>
+		<h2 class="retrait__titre"><?php echo esc_html( $titre ); ?></h2>
 		<ol class="retrait__etapes">
 			<?php foreach ( chalet_etapes_retrait() as $etape ) : ?>
 				<li><strong><?php echo esc_html( $etape['titre'] ); ?></strong><?php echo esc_html( $etape['texte'] ); ?></li>
@@ -620,7 +632,6 @@ function chalet_bande_retrait() {
 	</div>
 	<?php
 }
-add_action( 'woocommerce_before_checkout_form', 'chalet_bande_retrait', 5 );
 
 function chalet_livraison_choisie() {
 	$methodes = WC()->session ? (array) WC()->session->get( 'chosen_shipping_methods', array() ) : array();
@@ -1454,6 +1465,41 @@ function chalet_reste_avant_seuil( $panier ) {
 	}
 	$plats = (float) $panier->get_cart_contents_total() + (float) $panier->get_cart_contents_tax(); // Après code promo.
 	return max( 0, $seuil - $plats );
+}
+
+/* --------------------------------------------------------------------------
+ * 8 undecies. IT-16 : page d'accueil (front-page.php), 3 derniers produits ajoutés.
+ * ------------------------------------------------------------------------ */
+
+// Grille « Nouveau à la carte » : les 3 derniers produits publiés, avec la carte produit de La Carte.
+function chalet_nouveautes() {
+	$produits = wc_get_products(
+		array(
+			'status'     => 'publish',
+			'visibility' => 'catalog',
+			'limit'      => 3,
+			'orderby'    => array(
+				'date' => 'DESC',
+				'ID'   => 'DESC', // Produits créés à la même seconde : le dernier créé d'abord.
+			),
+			'return'     => 'ids',
+		)
+	);
+	if ( ! $produits ) {
+		return;
+	}
+	$GLOBALS['chalet_nouveautes'] = true; // Badge « Nouveau » sur ces cartes (chalet_badge_carte()).
+	echo '<div class="woocommerce">';
+	woocommerce_product_loop_start();
+	foreach ( $produits as $id ) {
+		$GLOBALS['post'] = get_post( $id ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		setup_postdata( $GLOBALS['post'] );
+		wc_get_template_part( 'content', 'product' );
+	}
+	woocommerce_product_loop_end();
+	echo '</div>';
+	wp_reset_postdata();
+	$GLOBALS['chalet_nouveautes'] = false;
 }
 
 // Ajout des frais au calcul du panier : recalculé à chaque changement (quantité, plat retiré, code promo).
