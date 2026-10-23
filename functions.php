@@ -2009,6 +2009,31 @@ function chalet_script_creneau() {
 add_action( 'wp_enqueue_scripts', 'chalet_script_creneau' );
 
 /* --------------------------------------------------------------------------
+ * 8 sexdecies. IT-21 : SEO avec Yoast SEO (Title et Meta Description saisis dans chaque fiche).
+ *    Partage d'un plat : la page est déclarée comme produit, avec son prix (Open Graph).
+ * ------------------------------------------------------------------------ */
+
+function chalet_og_type_produit( $type ) {
+	return is_product() ? 'product' : $type;
+}
+add_filter( 'wpseo_opengraph_type', 'chalet_og_type_produit' );
+
+// Prix « à partir de » du plat (prix mini des variations) et devise, lus par Facebook, Pinterest…
+function chalet_og_prix_produit() {
+	if ( ! is_product() ) {
+		return;
+	}
+	$produit = wc_get_product( get_queried_object_id() );
+	if ( ! $produit ) {
+		return;
+	}
+	$prix = $produit->is_type( 'variable' ) ? $produit->get_variation_price( 'min' ) : $produit->get_price();
+	printf( '<meta property="product:price:amount" content="%s">' . "\n", esc_attr( wc_format_decimal( $prix, 2 ) ) );
+	printf( '<meta property="product:price:currency" content="%s">' . "\n", esc_attr( get_woocommerce_currency() ) );
+}
+add_action( 'wpseo_head', 'chalet_og_prix_produit', 40 );
+
+/* --------------------------------------------------------------------------
  * 9. Pied de page.
  * ------------------------------------------------------------------------ */
 function chalet_pied() {
