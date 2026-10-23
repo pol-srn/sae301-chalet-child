@@ -22,6 +22,8 @@ get_header();
 			</p>
 		</section>
 
+		<?php chalet_section_star(); // IT-W : plat le plus vendu. ?>
+
 		<section class="accueil-nouveautes" aria-labelledby="accueil-nouveautes-titre">
 			<p class="accueil__surtitre">Tout juste arrivés</p>
 			<h2 class="accueil-nouveautes__titre" id="accueil-nouveautes-titre">Nouveau à la carte</h2>

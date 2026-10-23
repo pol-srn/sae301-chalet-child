@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.22.1
+Version:      1.23.0
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -4933,5 +4933,90 @@ ul.products li.product .added_to_cart {
     margin: 0 0 var(--space-12);
     font-size: 0.8125rem;
     color: var(--color-accent);
+  }
+}
+
+/* ==========================================================================
+   IT-W : produit star (section de l'accueil en ardoise, badge)
+   ========================================================================== */
+.badge.badge--star {
+  background-color: var(--color-creme);
+  color: var(--color-noir);
+}
+
+.accueil .accueil-star {
+  display: flex;
+  flex-direction: column;
+  margin-inline: calc(50% - 50vw);
+  padding: var(--space-48) var(--space-16);
+  gap: var(--space-24);
+  background-color: var(--color-noir);
+  color: var(--color-creme);
+
+  .accueil-star__visuel {
+    position: relative;
+    margin: 0;
+
+    img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 13 / 9;
+      object-fit: cover;
+    }
+
+    .badge {
+      position: absolute;
+      top: var(--space-16);
+      left: var(--space-16);
+    }
+  }
+
+  .accueil-star__texte {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-12);
+  }
+
+  .accueil__surtitre {
+    color: var(--color-or);
+  }
+
+  .accueil-star__nom {
+    margin: 0;
+    font-size: 2rem;
+    color: var(--color-creme);
+  }
+
+  .accueil-star__description {
+    margin: 0;
+  }
+
+  .accueil-star__preuve {
+    margin: 0;
+    font-size: var(--font-size-petit);
+    color: var(--color-or);
+  }
+
+  .accueil-star__prix {
+    margin: 0 0 var(--space-8);
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--color-or);
+  }
+
+  @media (min-width: 64rem) {
+    flex-direction: row;
+    align-items: center;
+    padding: var(--space-64) max(var(--space-16), calc((100vw - 70rem) / 2));
+    gap: var(--space-48);
+
+    .accueil-star__visuel {
+      flex: 0 0 32.5rem;
+    }
+
+    .accueil-star__nom {
+      font-size: 2.75rem;
+    }
   }
 }

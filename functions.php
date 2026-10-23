@@ -403,6 +403,8 @@ function chalet_badge_carte() {
 	$dispo = $product->get_availability();
 	if ( ! $product->is_in_stock() ) {
 		echo '<span class="badge badge--erreur carte-produit__badge">Épuisé</span>';
+	} elseif ( chalet_est_produit_star( $product ) ) {
+		echo '<span class="badge badge--star carte-produit__badge">★ Produit star</span>'; // IT-W.
 	} elseif ( ! empty( $GLOBALS['chalet_nouveautes'] ) ) {
 		echo '<span class="badge badge--nouveau carte-produit__badge">Nouveau</span>'; // IT-16 : bloc « Nouveau à la carte ».
 	} elseif ( str_contains( $dispo['class'], 'stock--faible' ) ) {
@@ -2050,6 +2052,61 @@ function chalet_cgv_sans_apercu() {
 	remove_action( 'woocommerce_checkout_terms_and_conditions', 'wc_terms_and_conditions_page_content', 30 );
 }
 add_action( 'init', 'chalet_cgv_sans_apercu' );
+
+/* --------------------------------------------------------------------------
+ * 8 octodecies. IT-W : produit star (plat le plus vendu, détecté automatiquement).
+ *    Ventes = compteur « total_sales » de WooCommerce ; à égalité, le plat qui rapporte le plus.
+ * ------------------------------------------------------------------------ */
+
+function chalet_produit_star() {
+	static $star = false; // Calculé une seule fois par page (section de l'accueil + badges).
+	if ( false !== $star ) {
+		return $star;
+	}
+	$star   = null;
+	$record = array( 0, 0 );
+	foreach ( wc_get_products( array( 'status' => 'publish', 'visibility' => 'catalog', 'limit' => -1 ) ) as $produit ) {
+		$ventes  = (int) $produit->get_total_sales();
+		$recette = $ventes * (float) ( $produit->is_type( 'variable' ) ? $produit->get_variation_price( 'min' ) : $produit->get_price() );
+		if ( $ventes > 0 && array( $ventes, $recette ) > $record ) {
+			$record = array( $ventes, $recette );
+			$star   = $produit;
+		}
+	}
+	return $star;
+}
+
+function chalet_est_produit_star( $produit ) {
+	$star = chalet_produit_star();
+	return $star && $produit && $star->get_id() === $produit->get_id();
+}
+
+// Section « Le plat star » de l'accueil (front-page.php), en ardoise.
+function chalet_section_star() {
+	$star = chalet_produit_star();
+	if ( ! $star ) {
+		return;
+	}
+	$ventes = (int) $star->get_total_sales();
+	?>
+	<section class="accueil-star" aria-labelledby="accueil-star-titre">
+		<figure class="accueil-star__visuel">
+			<?php echo wp_kses_post( $star->get_image( 'large' ) ); ?>
+			<span class="badge badge--star">★ Produit star</span>
+		</figure>
+		<div class="accueil-star__texte">
+			<p class="accueil__surtitre">Le plat star</p>
+			<h2 class="accueil-star__nom" id="accueil-star-titre"><?php echo esc_html( $star->get_name() ); ?></h2>
+			<?php if ( $star->get_short_description() ) : ?>
+				<p class="accueil-star__description"><?php echo esc_html( wp_strip_all_tags( $star->get_short_description() ) ); ?></p>
+			<?php endif; ?>
+			<p class="accueil-star__preuve">★ Commandé <?php echo esc_html( $ventes ); ?> fois sur le site : notre plat le plus commandé</p>
+			<p class="accueil-star__prix"><?php echo wp_kses_post( $star->get_price_html() ); ?></p>
+			<a class="button compte__bouton" href="<?php echo esc_url( $star->get_permalink() ); ?>"><?php echo esc_html( $star->is_type( 'variable' ) ? 'Choisir les options' : 'Voir le plat' ); ?></a>
+		</div>
+	</section>
+	<?php
+}
 
 /* --------------------------------------------------------------------------
  * 9. Pied de page.
