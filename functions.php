@@ -112,10 +112,18 @@ function chalet_titre_page() {
 
 // Liens du pied de page : uniquement des pages de ce site (aucun lien vers le site vitrine).
 function chalet_liens_restaurant() {
-	return array(
+	$liens = array(
 		'La Carte' => wc_get_page_permalink( 'shop' ),
 		'L’équipe' => get_post_type_archive_link( 'membre' ), // IT-11.
 	);
+	// IT-22 : pages légales du site (créées dans Pages, slugs « mentions-legales » et « cgv »).
+	foreach ( array( 'Mentions légales' => 'mentions-legales', 'CGV' => 'cgv' ) as $libelle => $slug ) {
+		$page = get_page_by_path( $slug );
+		if ( $page && 'publish' === $page->post_status ) {
+			$liens[ $libelle ] = get_permalink( $page );
+		}
+	}
+	return $liens;
 }
 
 function chalet_compteur_panier() {
@@ -2032,6 +2040,16 @@ function chalet_og_prix_produit() {
 	printf( '<meta property="product:price:currency" content="%s">' . "\n", esc_attr( get_woocommerce_currency() ) );
 }
 add_action( 'wpseo_head', 'chalet_og_prix_produit', 40 );
+
+/* --------------------------------------------------------------------------
+ * 8 septdecies. IT-22 : CGV (page choisie dans WooCommerce › Réglages › Avancé).
+ * ------------------------------------------------------------------------ */
+
+// Pas d'aperçu des CGV dans la page Commande : le lien « conditions générales » ouvre la page dédiée.
+function chalet_cgv_sans_apercu() {
+	remove_action( 'woocommerce_checkout_terms_and_conditions', 'wc_terms_and_conditions_page_content', 30 );
+}
+add_action( 'init', 'chalet_cgv_sans_apercu' );
 
 /* --------------------------------------------------------------------------
  * 9. Pied de page.

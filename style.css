@@ -4,7 +4,7 @@ Theme URI:    https://github.com/pol-srn/sae301-chalet-child
 Description:  Thème enfant Storefront pour le click & collect du restaurant Le Chalet (Limoges). SAé 3.01, MMI.
 Author:       Paul Siron
 Template:     storefront
-Version:      1.21.0
+Version:      1.22.1
 License:      GNU General Public License v2 or later
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  chalet-child
@@ -4864,4 +4864,74 @@ ul.products li.product .added_to_cart {
   margin: calc(var(--space-8) * -1) 0 0;
   font-size: var(--font-size-petit);
   color: var(--color-accent);
+}
+
+/* ==========================================================================
+   IT-22 : pages légales (Mentions légales, CGV) et case des CGV de la page Commande
+   ========================================================================== */
+.page .hentry .entry-content:has(.legal__note) {
+  max-width: 47.5rem;
+  margin: 0 auto;
+  padding: var(--space-48) 0 var(--space-64);
+  line-height: 1.6;
+
+  h2 {
+    margin: var(--space-32) 0 var(--space-12);
+    font-size: 1.5rem;
+  }
+
+  p {
+    margin: 0 0 var(--space-16);
+  }
+}
+
+.legal__note {
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid var(--color-accent);
+  font-size: var(--font-size-petit);
+  color: var(--color-accent);
+}
+
+.legal__sommaire p {
+  font-size: var(--font-size-petit);
+  line-height: 1.9;
+}
+
+.legal__sommaire a,
+.page .entry-content h2[id] {
+  scroll-margin-top: var(--space-16);
+}
+
+/* Case « J'ai lu et j'accepte les conditions générales de vente » : obligatoire (WooCommerce). */
+.woocommerce-terms-and-conditions-wrapper {
+  margin: var(--space-16) 0;
+  font-size: var(--font-size-petit);
+
+  /* Case à gauche, texte et astérisque à la suite sur la même ligne. */
+  .woocommerce-form__label-for-checkbox {
+    position: relative;
+    display: block;
+    padding-left: 1.875rem;
+    cursor: pointer;
+  }
+
+  .woocommerce-form__input-checkbox {
+    position: absolute;
+    top: 0.125rem;
+    left: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+    accent-color: var(--color-accent);
+  }
+
+  a {
+    color: var(--color-accent);
+  }
+
+  .woocommerce-privacy-policy-text p {
+    margin: 0 0 var(--space-12);
+    font-size: 0.8125rem;
+    color: var(--color-accent);
+  }
 }
